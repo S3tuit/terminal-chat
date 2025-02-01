@@ -1,0 +1,49 @@
+/* Global styles for dark mode */
+body {
+    background-color: #2e2e2e;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+.navbar-pf {
+    background-color: #333;
+}
+
+.navbar-brand {
+    color: white !important;
+}
+
+textarea {
+    background-color: #444;
+    color: white;
+    border: 1px solid #555;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+#chat {
+    resize: none;
+    overflow: auto;
+    min-height: 300px;
+    max-height: 300px;
+}
+
+#active-users {
+    resize: none;
+    overflow: auto;
+    min-height: 300px;
+    max-height: 300px;
+    margin-right: 10px;
+}
+
+button {
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+}
+
+button:disabled {
+    background-color: #6c757d;
+}
