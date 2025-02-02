@@ -5,8 +5,11 @@ import jakarta.inject.Inject;
 import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
+import org.bson.types.ObjectId;
 import org.chatq.ChatSseResource;
+import org.chatq.entities.ChatMessage;
 
+import java.time.Instant;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -28,6 +31,12 @@ public class ChatSocket {
 
     @OnMessage
     public void onMessage(String message, @PathParam("username") String username) {
+        ChatMessage chatMessage = new ChatMessage();
+        chatMessage.fromUsername = username;
+        chatMessage.message = message;
+        chatMessage.timestamp = Instant.now();
+        chatMessage.persist();
+        System.out.println(chatMessage.message);
         this.sendMessage(String.format(">> %s: %s", username, message));
     }
 
