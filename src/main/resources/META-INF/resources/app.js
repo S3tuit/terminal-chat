@@ -36,7 +36,7 @@ var connect = function () {
     if (!connected) {
         var name = $("#name").val();
         console.log("Val: " + name);
-        socket = new WebSocket("ws://" + location.host + "/chat/" + name);
+        socket = new WebSocket("ws://" + location.host + "/chat/" + name + "/67a0d66085787a5c95785e99");
         socket.onopen = function () {
             connected = true;
             console.log("Connected to the web socket");
