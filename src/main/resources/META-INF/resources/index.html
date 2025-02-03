@@ -1,13 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quarkus Chat!</title>
     <link rel="stylesheet" href="styles.css">
 </head>
-
 <body>
 <nav class="navbar navbar-default navbar-pf" role="navigation">
     <div class="navbar-header">
@@ -18,22 +16,21 @@
 </nav>
 <div class="container">
     <br />
-    <div class="row">
-        <input id="name" class="col-md-4" type="text" placeholder="your name" />
-        <button id="connect" class="col-md-1 btn btn-primary" type="button">Connect</button>
+    <div class="name-container">
+        <input id="name" type="text" placeholder="your name" />
+        <button id="connect" class="btn btn-primary" type="button">Connect</button>
     </div>
     <br />
-    <div class="row">
-        <textarea class="col-md-4" id="active-users" disabled placeholder="Active Users"></textarea>
-        <textarea class="col-md-7" id="chat" placeholder="Chat"></textarea>
+    <div class="chat-container">
+        <textarea id="active-users" disabled placeholder="Active Users"></textarea>
+        <textarea id="chat" placeholder="Chat"></textarea>
     </div>
-    <div class="row">
-        <input class="col-md-6" id="msg" type="text" placeholder="Enter your message" />
-        <button class="col-md-1 btn btn-primary" id="send" type="button" disabled>Send</button>
+    <div class="message-container">
+        <input id="msg" type="text" placeholder="Enter your message" />
+        <button id="send" type="button" disabled>Send</button>
     </div>
 </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 <script src="app.js"></script>
 </body>
-
 </html>
