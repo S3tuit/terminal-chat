@@ -1,6 +1,5 @@
 package org.chatq.entities;
 
-import io.quarkus.elytron.security.common.BcryptUtil;
 import io.quarkus.mongodb.panache.PanacheMongoEntity;
 import io.quarkus.mongodb.panache.common.MongoEntity;
 import org.bson.types.ObjectId;
