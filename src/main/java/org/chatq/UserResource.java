@@ -5,11 +5,11 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import org.chatq.auth.TokenResponse;
 import org.chatq.entities.TempUser;
 import org.chatq.entities.User;
-import org.chatq.service.AuthService;
+import org.chatq.auth.AuthService;
 import org.chatq.service.UserService;
-import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 
 @ApplicationScoped
 @Consumes(MediaType.APPLICATION_JSON)
@@ -19,6 +19,8 @@ public class UserResource {
 
     @Inject
     UserService userService;
+    @Inject
+    AuthService authService;
 
     @POST
     @Path("/register")
@@ -35,17 +37,16 @@ public class UserResource {
 
     @POST
     @Path("/login")
-    @Produces(MediaType.APPLICATION_JSON)
     public Response validateUser(TempUser tempUser) {
         if (tempUser.username == null || tempUser.plainPassword == null) {
-            return Response.status(Response.Status.BAD_REQUEST).entity("Username and password are required").build();
+            return Response.status(Response.Status.BAD_REQUEST).entity(new TokenResponse("Username and password are required")).build();
         }
 
-        User validUser = AuthService.validateLogin(tempUser.username, tempUser.plainPassword);
-        if (validUser == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Invalid username or password").build();
+        TokenResponse token = authService.validateLogin(tempUser.username, tempUser.plainPassword);
+        if (token == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).entity(new TokenResponse("Invalid username or password")).build();
         } else {
-            return Response.ok().entity(validUser).build();
+            return Response.ok().entity(token).build();
         }
     }
 

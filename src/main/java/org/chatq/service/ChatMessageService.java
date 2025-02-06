@@ -18,4 +18,13 @@ public class ChatMessageService {
 
         return ChatMessage.getChatMessagesPage(chatIdObj, page);
     }
+
+    public List<ChatMessage> getChatMessages(ObjectId chatId, int page) {
+        ObjectId chatIdObj = Chat.getChatIdIfExists(chatId);
+        if (chatIdObj == null) {
+            return null;
+        }
+
+        return ChatMessage.getChatMessagesPage(chatIdObj, page);
+    }
 }
