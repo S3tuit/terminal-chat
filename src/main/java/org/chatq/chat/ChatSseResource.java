@@ -1,4 +1,4 @@
-package org.chatq;
+package org.chatq.chat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.smallrye.mutiny.Multi;
