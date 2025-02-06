@@ -1,6 +1,7 @@
-package org.chatq;
+package org.chatq.chat;
 
 import jakarta.annotation.security.RolesAllowed;
+import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
@@ -8,10 +9,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import org.bson.types.ObjectId;
-import org.chatq.entities.ChatMessage;
-import org.chatq.service.ChatMessageService;
-import org.chatq.service.UserService;
-import org.chatq.socket.ChatSocket;
+import org.chatq.users.UserService;
 
 import java.util.List;
 import java.util.Set;
@@ -20,6 +18,7 @@ import java.util.Set;
 @Path("/api")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
+@ApplicationScoped
 public class ChatResource {
 
     @Inject

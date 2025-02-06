@@ -1,10 +1,9 @@
-package org.chatq.service;
+package org.chatq.users;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.bson.types.ObjectId;
 import org.chatq.auth.AuthService;
-import org.chatq.entities.User;
 
 @ApplicationScoped
 public class UserService {
@@ -19,6 +18,6 @@ public class UserService {
     }
 
     public boolean hasAccessToChat(String username, ObjectId chatId) {
-        return User.userHasChat(username, chatId);
+        return User.hasChat(username, chatId);
     }
 }

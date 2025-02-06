@@ -3,8 +3,7 @@ package org.chatq.auth;
 import io.quarkus.elytron.security.common.BcryptUtil;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.chatq.entities.TempUser;
-import org.chatq.entities.User;
+import org.chatq.users.User;
 
 @ApplicationScoped
 public class AuthService {
@@ -16,6 +15,7 @@ public class AuthService {
         return BcryptUtil.bcryptHash(password);
     }
 
+    // Returns a token if the username and password are present at db
     public TokenResponse validateLogin(String username, String plainPassword) {
         User user = User.find("{ username: ?1 }", username).firstResult();
         if (user != null && BcryptUtil.matches(plainPassword, user.hashedPassword)) {
@@ -25,11 +25,4 @@ public class AuthService {
         }
     }
 
-    public TokenResponse validateLogin(TempUser tempUser) {
-        if (tempUser == null || tempUser.username == null || tempUser.plainPassword == null) {
-            return null;
-        } else {
-            return validateLogin(tempUser.plainPassword, tempUser.username);
-        }
-    }
 }

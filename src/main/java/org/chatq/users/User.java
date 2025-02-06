@@ -1,4 +1,4 @@
-package org.chatq.entities;
+package org.chatq.users;
 
 import io.quarkus.mongodb.panache.PanacheMongoEntity;
 import io.quarkus.mongodb.panache.common.MongoEntity;
@@ -27,7 +27,7 @@ public class User extends PanacheMongoEntity {
         this.chatIds = null;
     }
 
-    public static boolean userHasChat(String username, ObjectId chatId) {
+    public static boolean hasChat(String username, ObjectId chatId) {
         if (chatId == null || username == null) {
             return false;
         }
