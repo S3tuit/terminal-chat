@@ -16,7 +16,7 @@ import java.util.Collection;
 import java.util.concurrent.SubmissionPublisher;
 
 
-@Path("/sse")
+@Path("/chat/sse")
 @ApplicationScoped
 public class ChatSseResource {
 

@@ -16,7 +16,7 @@ import java.util.Collection;
 import java.util.List;
 
 
-@Path("/api")
+@Path("/chat")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 @ApplicationScoped
@@ -76,7 +76,7 @@ public class ChatResource {
             return Response.status(Response.Status.BAD_REQUEST).entity("Seems like that's not a valid chat").build();
         }
 
-        // Create a new Chat entity and its id to the user who created it
+        // Create a new Chat entity and assign its id to the user who created it
         Chat createdChat = chatService.createChat(chat.direct, chat.chatName, jwt.getClaim("userId").toString());
         if (createdChat != null && userService.addChatToUser(jwt.getClaim("userId").toString(), createdChat.id)) {
             return Response.status(Response.Status.CREATED).build();

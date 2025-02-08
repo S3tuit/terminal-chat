@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-@ServerEndpoint(value = "/chat/{chatId}")
+@ServerEndpoint(value = "/chat/ws/{chatId}")
 @Produces(MediaType.APPLICATION_JSON)
 @ApplicationScoped
 public class ChatSocket {
