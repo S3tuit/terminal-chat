@@ -3,34 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quarkus Chat!</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Chat App - Login</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<nav class="navbar navbar-default navbar-pf" role="navigation">
-    <div class="navbar-header">
-        <a class="navbar-brand" href="/">
-            <p><strong>>> Quarkus Chat!</strong></p>
-        </a>
-    </div>
-</nav>
 <div class="container">
-    <br />
-    <div class="name-container">
-        <input id="name" type="text" placeholder="your name" />
-        <button id="connect" class="btn btn-primary" type="button">Connect</button>
-    </div>
-    <br />
-    <div class="chat-container">
-        <textarea id="active-users" disabled placeholder="Active Users"></textarea>
-        <textarea id="chat" placeholder="Chat"></textarea>
-    </div>
-    <div class="message-container">
-        <input id="msg" type="text" placeholder="Enter your message" />
-        <button id="send" type="button" disabled>Send</button>
+    <div class="login-box">
+        <h1>Login</h1>
+        <form id="login-form">
+            <input type="text" id="username" placeholder="Username">
+            <input type="password" id="password" placeholder="Password">
+            <button type="submit" id="login-btn">Login</button>
+            <p id="error-message"></p>
+        </form>
     </div>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-<script src="app.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>
