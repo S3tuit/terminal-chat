@@ -57,4 +57,18 @@ public class Invite extends PanacheMongoEntity {
         }
     }
 
+    // Returns the chatId of the invite if it's a valid invite at db
+    public static ObjectId getChatIdInsideInvite(String inviteCode) {
+        Invite invite = Invite.find("code", inviteCode).firstResult();
+        if (invite != null) {
+
+            // If the invite is expired delete it at db and return false
+            if (invite.expiresAt.isBefore(Instant.now())) {
+                invite.delete();
+                return null;
+            }
+            return invite.chatId;
+        }
+        return null;
+    }
 }

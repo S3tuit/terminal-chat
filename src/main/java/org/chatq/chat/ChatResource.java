@@ -9,8 +9,8 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import org.bson.types.ObjectId;
+import org.chatq.auth.AuthService;
 import org.chatq.users.UserService;
-import org.eclipse.microprofile.jwt.JsonWebToken;
 
 import java.util.Collection;
 import java.util.List;
@@ -63,11 +63,8 @@ public class ChatResource {
     @RolesAllowed({"User"})
     public Response createChat(@Context SecurityContext ctx, Chat chat) {
         // Check for token validity
-        if (ctx.getUserPrincipal() == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).build();
-        }
-        JsonWebToken jwt = (JsonWebToken) ctx.getUserPrincipal();
-        if(jwt.getClaim("userId") == null) {
+        String userId = AuthService.getClaimFromCtx(ctx, "userId");
+        if (userId == null) {
             return Response.status(Response.Status.UNAUTHORIZED).build();
         }
 
@@ -77,8 +74,8 @@ public class ChatResource {
         }
 
         // Create a new Chat entity and assign its id to the user who created it
-        Chat createdChat = chatService.createChat(chat.direct, chat.chatName, jwt.getClaim("userId").toString());
-        if (createdChat != null && userService.addChatToUser(jwt.getClaim("userId").toString(), createdChat.id)) {
+        Chat createdChat = chatService.createChat(chat.direct, chat.chatName, userId);
+        if (createdChat != null && userService.addChatToUser(userId, createdChat.id)) {
             return Response.status(Response.Status.CREATED).build();
         } else {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Something went on our end, sorry").build();

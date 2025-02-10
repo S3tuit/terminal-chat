@@ -5,6 +5,7 @@ import io.smallrye.jwt.auth.principal.JWTParser;
 import io.smallrye.jwt.auth.principal.ParseException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.core.SecurityContext;
 import org.bson.types.ObjectId;
 import org.chatq.users.User;
 import org.eclipse.microprofile.jwt.JsonWebToken;
@@ -50,4 +51,15 @@ public class AuthService {
         return null;
     }
 
+    public static String getClaimFromCtx(SecurityContext ctx, String claimName) {
+        // Check for token validity
+        if (ctx.getUserPrincipal() == null) {
+            return null;
+        }
+        JsonWebToken jwt = (JsonWebToken) ctx.getUserPrincipal();
+        if(jwt.getClaim(claimName) == null) {
+            return null;
+        }
+        return jwt.getClaim(claimName).toString();
+    }
 }

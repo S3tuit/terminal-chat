@@ -1,13 +1,18 @@
 package org.chatq.invite;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.bson.types.ObjectId;
+import org.chatq.users.UserService;
 
 import java.time.Duration;
 import java.time.Instant;
 
 @ApplicationScoped
 public class InviteService {
+
+    @Inject
+    UserService userService;
 
     public enum TimePeriod {
 
@@ -57,5 +62,17 @@ public class InviteService {
                 break;
         }
         return Invite.createNewInvite(chatId, expiresAt);
+    }
+
+    public boolean inviteUserToChat(String inviteCode, String userId) {
+        if (inviteCode == null || inviteCode.isEmpty()) {
+            throw new IllegalArgumentException("inviteCode cannot be null or empty");
+        }
+        ObjectId chatId = Invite.getChatIdInsideInvite(inviteCode);
+
+        if (chatId != null) {
+            return userService.addChatToUser(userId, chatId);
+        }
+        return false;
     }
 }
