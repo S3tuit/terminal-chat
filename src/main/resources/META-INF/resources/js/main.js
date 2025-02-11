@@ -9,6 +9,7 @@ async function handleLogin(event) {
         showError("Please enter both username and password.");
         return;
     }
+    console.log(password);
 
     try {
         const response = await fetch("/user/login", {
@@ -24,7 +25,7 @@ async function handleLogin(event) {
 
         if (response.ok) {
             const data = await response.json();
-            const jwt = data.jwt;
+            const jwt = data.token;
 
             if (jwt) {
                 localStorage.setItem("jwt", jwt); // Store the JWT in localStorage
@@ -46,6 +47,7 @@ function showError(message) {
     const errorMessage = document.getElementById("error-message");
     errorMessage.textContent = message;
     errorMessage.style.color = "red";
+    errorMessage.style.display = "block";
 }
 
 // Attach event listener to the login button

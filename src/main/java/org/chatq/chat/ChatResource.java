@@ -12,6 +12,7 @@ import org.bson.types.ObjectId;
 import org.chatq.auth.AuthService;
 import org.chatq.users.UserService;
 
+import java.io.File;
 import java.util.Collection;
 import java.util.List;
 
@@ -79,6 +80,17 @@ public class ChatResource {
             return Response.status(Response.Status.CREATED).build();
         } else {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Something went on our end, sorry").build();
+        }
+    }
+
+    @GET
+    @Path("/{chatId}")
+    @Produces(MediaType.TEXT_HTML)
+    public File serveChatPage(@PathParam("chatId") String chatId) {
+        if (Chat.getChatIdIfExists(chatId) == null) {
+            return null;
+        } else {
+            return new File("src/main/resources/META-INF/resources/chat/chat.html");
         }
     }
 }

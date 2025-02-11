@@ -34,4 +34,13 @@ public class Chat extends PanacheMongoEntity {
         Chat chat = findChatById(id);
         return chat != null ? chat.id : null;
     }
+
+    public static ObjectId getChatIdIfExists(String chatId) {
+        try {
+            return getChatIdIfExists(new ObjectId(chatId));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 }

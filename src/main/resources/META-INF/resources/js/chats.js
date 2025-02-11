@@ -1,14 +1,3 @@
-// Wait for DOM to load before attaching the event listener
-window.addEventListener("DOMContentLoaded", () => {
-    const loginForm = document.getElementById("login-form");
-    if (loginForm) {
-        loginForm.addEventListener("submit", handleLogin);
-    } else {
-        console.error("Login form not found.");
-    }
-});
-
-
 // Function to fetch chats and display them
 async function loadChats() {
     const jwt = localStorage.getItem("jwt");
@@ -28,6 +17,7 @@ async function loadChats() {
 
         if (response.ok) {
             const chats = await response.json();
+            console.log(chats);
             displayChats(chats);
         } else {
             const error = await response.json();
@@ -52,11 +42,11 @@ function displayChats(chats) {
         const chatButton = document.createElement("button");
         chatButton.classList.add("chat-button");
         chatButton.textContent = chat.chatName || "Unnamed Chat";
-        chatButton.dataset.chatId = chat._id; // Store the chatId for later use
+        chatButton.dataset.chatId = chat.id; // Store the chatId for later use
 
         // Add event listener for future actions (e.g., opening the chat)
         chatButton.addEventListener("click", () => {
-            openChat(chat._id);
+            openChat(chat.id);
         });
 
         chatList.appendChild(chatButton);
@@ -66,8 +56,8 @@ function displayChats(chats) {
 // Function to handle chat button clicks
 function openChat(chatId) {
     console.log("Chat selected:", chatId);
-    // Redirect to a chat page or load chat messages (you'll implement this later)
-    alert(`You selected chat with ID: ${chatId}`);
+    // Redirect to the chat page
+    window.location.href = `/chat/${chatId}`;
 }
 
 // Function to show error messages

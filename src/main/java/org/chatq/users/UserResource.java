@@ -12,7 +12,9 @@ import org.bson.types.ObjectId;
 import org.chatq.auth.TokenResponse;
 import org.chatq.auth.TempUser;
 import org.chatq.auth.AuthService;
+import org.chatq.chat.Chat;
 
+import java.util.List;
 import java.util.Set;
 
 @ApplicationScoped
@@ -70,8 +72,8 @@ public class UserResource {
             return Response.status(Response.Status.BAD_REQUEST).entity("Ouch, we couldn't find your profile").build();
         }
 
-        Set<ObjectId> chatIds = userService.getUserChatIds(username);
-        return Response.ok().entity(chatIds).build();
+        List<Chat> chats = userService.getUserChats(username);
+        return Response.ok().entity(chats).build();
     }
 
 }
