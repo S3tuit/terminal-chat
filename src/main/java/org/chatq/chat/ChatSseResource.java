@@ -12,14 +12,15 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.sse.OutboundSseEvent;
 import jakarta.ws.rs.sse.Sse;
 
-import java.util.Set;
+import java.util.Collection;
 import java.util.concurrent.SubmissionPublisher;
 
-@Path("/sse")
+
+@Path("/chat/sse")
 @ApplicationScoped
 public class ChatSseResource {
 
-    private final SubmissionPublisher<Set<String>> publisher = new SubmissionPublisher<>(Infrastructure.getDefaultExecutor(), 10);
+    private final SubmissionPublisher<Collection<String>> publisher = new SubmissionPublisher<>(Infrastructure.getDefaultExecutor(), 10);
 
     @Inject
     Sse sse;
@@ -33,7 +34,7 @@ public class ChatSseResource {
         return Multi.createFrom().publisher(publisher)
                 .map(activeUsers -> {
                     try {
-                        // Converts Set<String> to String so frontend can decode the JSON
+                        // Converts Collection<String> to String so frontend can decode the JSON
                         String json = objectMapper.writeValueAsString(activeUsers);
                         return sse.newEventBuilder()
                                 .name("active-users")
@@ -47,7 +48,7 @@ public class ChatSseResource {
                 });
     }
 
-    public void streamActiveUsernames(Set<String> activeUsernames) {
+    public void streamActiveUsernames(Collection<String> activeUsernames) {
         publisher.submit(activeUsernames);
     }
 }

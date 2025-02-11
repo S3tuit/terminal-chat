@@ -1,13 +1,21 @@
 package org.chatq.users;
 
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.*;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.SecurityContext;
+import org.bson.types.ObjectId;
 import org.chatq.auth.TokenResponse;
 import org.chatq.auth.TempUser;
 import org.chatq.auth.AuthService;
+import org.chatq.chat.Chat;
+
+import java.util.List;
+import java.util.Set;
 
 @ApplicationScoped
 @Consumes(MediaType.APPLICATION_JSON)
@@ -29,8 +37,12 @@ public class UserResource {
         }
 
         // this method hashes the password before persisting the user
-        userService.addUser(tempUser.getUsername(), tempUser.getPlainPassword());
-        return Response.ok().entity("User registered successfully").build();
+        if (userService.addUser(tempUser.getUsername(), tempUser.getPlainPassword())){
+            return Response.status(Response.Status.CREATED).build();
+        } else {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Something went wrong during registration").build();
+        }
+
     }
 
     @POST
@@ -46,6 +58,22 @@ public class UserResource {
         } else {
             return Response.ok().entity(token).build();
         }
+    }
+
+    @GET
+    @RolesAllowed({"User"})
+    @Path("/chats")
+    public Response getUserChats(@Context SecurityContext ctx) {
+        if (ctx.getUserPrincipal() == null) {
+            return Response.status(Response.Status.UNAUTHORIZED).build();
+        }
+        String username = ctx.getUserPrincipal().getName();
+        if (username == null) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Ouch, we couldn't find your profile").build();
+        }
+
+        List<Chat> chats = userService.getUserChats(username);
+        return Response.ok().entity(chats).build();
     }
 
 }
