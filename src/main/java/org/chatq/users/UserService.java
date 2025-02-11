@@ -4,7 +4,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.bson.types.ObjectId;
 import org.chatq.auth.AuthService;
+import org.chatq.chat.Chat;
 
+import java.util.List;
 import java.util.Set;
 
 @ApplicationScoped
@@ -28,8 +30,8 @@ public class UserService {
         return User.hasChat(username, chatId);
     }
 
-    public Set<ObjectId> getUserChatIds(String username) {
-        return User.getChatIds(username);
+    public List<Chat> getUserChats(String username) {
+        return User.getChats(username);
     }
 
     public boolean addChatToUser(String userId, ObjectId chatId) {
