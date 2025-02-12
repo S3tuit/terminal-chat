@@ -34,8 +34,12 @@ public class ChatResource {
 
     @GET
     @Path("/active-users")
-    public Collection<String> getActiveUsernames() {
-        return chatSocket.getActiveUsernames();
+    public Response getActiveUsernames(@QueryParam("chatId") ObjectId chatId) {
+        if (chatId == null) {
+            return Response.status(Response.Status.BAD_REQUEST).entity("Parameters not valid.").build();
+        }
+        Collection<String> activeUsername = chatSocket.getActiveUsernames(chatId.toString());
+        return Response.ok(activeUsername).build();
     }
 
     @GET

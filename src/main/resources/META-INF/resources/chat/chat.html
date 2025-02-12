@@ -8,13 +8,22 @@
 </head>
 <body>
 <div class="chat-container">
-    <div class="chat-header">
-        <h1>Chat</h1>
+    <!-- Main Chat Section -->
+    <div class="chat-main">
+        <div class="chat-header">
+            <h1>Chat</h1>
+        </div>
+        <div id="message-box" class="message-box"></div>
+        <div class="message-input">
+            <textarea id="message-input" placeholder="Write a message..."></textarea>
+            <button id="send-btn">Send</button>
+        </div>
     </div>
-    <div id="message-box" class="message-box"></div>
-    <div class="message-input">
-        <textarea id="message-input" placeholder="Write a message..."></textarea>
-        <button id="send-btn">Send</button>
+
+    <!-- Active Users Sidebar -->
+    <div class="chat-sidebar">
+        <h2>Active Users</h2>
+        <ul id="active-users-list"></ul>
     </div>
 </div>
 <script src="/js/chat.js"></script>
