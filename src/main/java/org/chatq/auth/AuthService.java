@@ -51,6 +51,16 @@ public class AuthService {
         return null;
     }
 
+    public String getUsernameIfPermission(String token, String chatId) {
+        try {
+            ObjectId chatIdObj = new ObjectId(chatId);
+            return getUsernameIfPermission(token, chatIdObj);
+        } catch (Exception ex) {
+            // TO CHANGE: this logs the JWT claims as plain text
+            return null;
+        }
+    }
+
     public static String getClaimFromCtx(SecurityContext ctx, String claimName) {
         // Check for token validity
         if (ctx.getUserPrincipal() == null) {

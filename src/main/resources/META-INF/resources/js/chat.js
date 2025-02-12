@@ -3,6 +3,7 @@ const chatId = window.location.pathname.split("/").pop();
 const messageBox = document.getElementById("message-box");
 const messageInput = document.getElementById("message-input");
 const sendBtn = document.getElementById("send-btn");
+const activeUsersList = document.getElementById("active-users-list");
 let socket;
 
 // Get the JWT token (you need to replace this logic with your actual token retrieval mechanism)
@@ -41,7 +42,7 @@ async function loadMessages(page = 0) {
 // Function to display messages
 function displayMessages(messages) {
     messageBox.innerHTML = ""; // Clear current messages
-    messages.forEach(({ message, fromUsername, timestamp }) => {
+    messages.slice().reverse().forEach(({ message, fromUsername, timestamp }) => {
         const messageDiv = document.createElement("div");
         messageDiv.classList.add("message");
         messageDiv.classList.add(fromUsername === "You" ? "sent" : "received");
@@ -59,7 +60,7 @@ function displayMessages(messages) {
 
 // Setup WebSocket for live messages
 function setupWebSocket() {
-    socket = new WebSocket(`ws://localhost:8080/chat/ws/${chatId}?token=${token}`); // Include token as a query parameter
+    socket = new WebSocket(`ws://${location.host}/chat/ws/${chatId}?token=${token}`); // Include token as a query parameter
 
     // Handle incoming messages
     socket.onmessage = (event) => {
@@ -94,3 +95,35 @@ sendBtn.addEventListener("click", () => {
         messageInput.value = ""; // Clear input
     }
 });
+
+// Function to update active users
+function updateActiveUsers(users) {
+    activeUsersList.innerHTML = ""; // Clear the current list
+    users.forEach((username) => {
+        const userItem = document.createElement("li");
+        userItem.textContent = username; // Set the username
+        activeUsersList.appendChild(userItem); // Add to the list
+    });
+}
+
+// Set up the SSE connection to listen for active users
+function setupActiveUsersSSE() {
+    const eventSource = new EventSource(`/chat/sse/${chatId}?token=${token}`); // Include token if needed
+
+    eventSource.onmessage = (event) => {
+        try {
+            const activeUsers = JSON.parse(event.data); // Parse the array of usernames
+            updateActiveUsers(activeUsers); // Update the UI
+        } catch (err) {
+            console.error("Error parsing active users SSE data:", err);
+        }
+    };
+
+    eventSource.onerror = () => {
+        console.error("Error with SSE connection. Attempting to reconnect...");
+        setTimeout(setupActiveUsersSSE, 5000); // Reconnect after 5 seconds
+    };
+}
+
+// Initialize the active users SSE connection
+setupActiveUsersSSE();

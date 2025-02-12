@@ -6,9 +6,7 @@ import jakarta.websocket.*;
 import jakarta.websocket.server.PathParam;
 import jakarta.websocket.server.ServerEndpoint;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.SecurityContext;
 import org.bson.types.ObjectId;
 import org.chatq.auth.AuthService;
 
@@ -16,7 +14,6 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @ServerEndpoint(value = "/chat/ws/{chatId}")
@@ -24,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @ApplicationScoped
 public class ChatSocket {
 
-    private final ConcurrentHashMap<Session, String> sessionMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ConcurrentHashMap<Session, String>> sessionMap = new ConcurrentHashMap<>();
 
     @Inject
     ChatSseResource chatSseResource;
@@ -55,8 +52,8 @@ public class ChatSocket {
                 session.close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "Hold on, bro, limited zone"));
                 return;
             }
-            sessionMap.put(session, username);
-            this.streamActiveUsernames();
+            this.addToSessionMap(chatId, session, username);
+            this.streamActiveUsernames(chatId);
 
         } catch (Exception e) {
             // If something goes wrong, close session
@@ -70,6 +67,11 @@ public class ChatSocket {
         }
     }
 
+    private void addToSessionMap(String chatId, Session session, String username) {
+        sessionMap.computeIfAbsent(chatId, k -> new ConcurrentHashMap<>())
+                .put(session, username);
+    }
+
     @OnMessage
     public void onMessage(Session session, String message, @PathParam("chatId") String chatId) {
         ObjectId chatIdObj = this.castChatId(chatId);
@@ -77,25 +79,33 @@ public class ChatSocket {
             return;
         }
 
-        String username = sessionMap.get(session);
+        String username = sessionMap.get(chatId).get(session);
         ChatMessage chatMessage = new ChatMessage(username, message, Instant.now(), chatIdObj);
         chatMessage.persist();
         // chatMessage.toJsonNoChatId() is a custom converter to a valid json string
-        this.broadcast(chatMessage.toJsonNoChatId());
+        this.broadcast(chatMessage.toJsonNoChatId(), chatId);
     }
 
     @OnClose
-    public void onClose(Session session) {
-        sessionMap.remove(session);
-        this.streamActiveUsernames();
+    public void onClose(Session session, @PathParam("chatId") String chatId) {
+        try {
+            sessionMap.get(chatId).remove(session);
+        } catch (NullPointerException e) {
+            System.out.println("We chouldn't close the websocket session");
+        }
+        this.streamActiveUsernames(chatId);
     }
 
     @OnError
-    public void onError(Session session, Throwable throwable) {
-        sessionMap.remove(session);
+    public void onError(Session session, @PathParam("chatId") String chatId, Throwable throwable) {
+        try {
+            sessionMap.get(chatId).remove(session);
+        } catch (NullPointerException e) {
+            System.out.println("We chouldn't close the failed websocket session");
+        }
         System.out.println("Error in the chat socket");
         throwable.printStackTrace();
-        this.streamActiveUsernames();
+        this.streamActiveUsernames(chatId);
     }
 
     private ObjectId castChatId(String chatId){
@@ -109,9 +119,9 @@ public class ChatSocket {
         }
     }
 
-    private void broadcast(String chatMessage) {
+    private void broadcast(String chatMessage, String chatId) {
 
-        sessionMap.forEachKey(1, session -> session.getAsyncRemote().
+        sessionMap.get(chatId).forEachKey(1, session -> session.getAsyncRemote().
                 sendObject(chatMessage, sendResult -> {
                     if (sendResult.getException() != null) {
                         sendResult.getException().printStackTrace();
@@ -120,11 +130,14 @@ public class ChatSocket {
 
     }
 
-    public void streamActiveUsernames() {
-        chatSseResource.streamActiveUsernames(this.getActiveUsernames());
+    public void streamActiveUsernames(String chatId) {
+        chatSseResource.streamActiveUsernames(this.getActiveUsernames(chatId), chatId);
     }
 
-    public Collection<String> getActiveUsernames() {
-        return sessionMap.values();
+    public Collection<String> getActiveUsernames(String chatId) {
+        if (sessionMap.get(chatId) != null) {
+            return sessionMap.get(chatId).values();
+        };
+        return null;
     }
 }
