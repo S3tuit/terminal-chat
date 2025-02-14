@@ -47,7 +47,7 @@ public class InviteResource {
     @POST
     @Path("/invite-user")
     @RolesAllowed({"User"})
-    public Response inviteUser(@QueryParam("inviteCode") String inviteCode, @Context SecurityContext ctx) {
+    public Response inviteUser(Invite invite, @Context SecurityContext ctx) {
         // Check for token validity
         String userId = AuthService.getClaimFromCtx(ctx, "userId");
         if (userId == null) {
@@ -55,11 +55,11 @@ public class InviteResource {
         }
 
         // Check for request validity
-        if (inviteCode == null) {
+        if (invite == null || invite.code == null) {
             return Response.status(Response.Status.BAD_REQUEST).entity("Trying to invite with a null inviteCode?").build();
         }
 
-        if (inviteService.inviteUserToChat(inviteCode, userId)) {
+        if (inviteService.inviteUserToChat(invite.code, userId)) {
             return Response.status(Response.Status.CREATED).build();
         } else {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Oops... user did not get invited to the chat").build();

@@ -22,9 +22,29 @@
 
     <!-- Active Users Sidebar -->
     <div class="chat-sidebar">
+        <button id="create-invite-btn">Create Chat Invite</button>
         <h2>Active Users</h2>
         <ul id="active-users-list"></ul>
     </div>
+
+    <!-- Invite Dialog -->
+    <div id="invite-dialog" class="invite-dialog hidden">
+        <div class="dialog-content">
+            <h2>Create Chat Invite</h2>
+            <select id="time-period-select">
+                <option value="MINUTES_30">30 minutes</option>
+                <option value="HOUR_1">1 hour</option>
+                <option value="HOUR_2">2 hours</option>
+                <option value="HOUR_8">8 hours</option>
+                <option value="DAY_1">1 day</option>
+                <option value="DAYS_7">7 days</option>
+                <option value="NEVER">Never</option>
+            </select>
+            <button id="create-invite-confirm-btn">Create</button>
+            <button id="invite-dialog-close-btn">Cancel</button>
+        </div>
+    </div>
+
 </div>
 <script src="/js/chat.js"></script>
 </body>
