@@ -27,6 +27,11 @@ async function loadChats() {
     }
 }
 
+function truncateMessage(message) {
+    // Limit the snippet to 50 characters
+    return message.length > 50 ? message.substring(0, 50) + "..." : message;
+}
+
 // Function to display chats on the page
 function displayChats(chats) {
     const chatList = document.getElementById("chat-list");
@@ -40,8 +45,15 @@ function displayChats(chats) {
     chats.forEach(chat => {
         const chatButton = document.createElement("button");
         chatButton.classList.add("chat-button");
-        chatButton.textContent = chat.chatName || "Unnamed Chat";
         chatButton.dataset.chatId = chat.id; // Store the chatId for later use
+
+        const chatName = chat.chatName || "Ghost chat Uuuu...";
+        const mostRecentMessage = chat.mostRecentMessage ? `${chat.mostRecentMessage.fromUsername}: ${truncateMessage(chat.mostRecentMessage.message)}` : "No messages yet...";
+
+        chatButton.innerHTML = `
+            <div><strong>${chatName}</strong></div>
+            <div class="message-snippet">${mostRecentMessage}</div>
+        `;
 
         // Add event listener for future actions (e.g., opening the chat)
         chatButton.addEventListener("click", () => {
