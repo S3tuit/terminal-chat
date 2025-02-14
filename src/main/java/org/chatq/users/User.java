@@ -2,10 +2,16 @@ package org.chatq.users;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.Field;
+import com.mongodb.client.model.Filters;
 import io.quarkus.mongodb.panache.PanacheMongoEntity;
+import io.quarkus.mongodb.panache.PanacheMongoEntityBase;
 import io.quarkus.mongodb.panache.common.MongoEntity;
+import org.bson.Document;
 import org.bson.types.ObjectId;
 import org.chatq.chat.Chat;
+import org.chatq.chat.ChatWithMostRecentMessage;
 
 import java.util.*;
 
@@ -50,12 +56,30 @@ public class User extends PanacheMongoEntity {
         return User.find("{ 'username': ?1, 'chatIds': ?2 }", username, chatId).firstResult() != null;
     }
 
-    public static List<Chat> getChats(String username) {
+    public static List<PanacheMongoEntityBase> getChats(String username) {
         User user = User.find("{ 'username': ?1 }", username).firstResult();
 
-        // if the user has at least one valid chat
         if (user != null && user.chatIds != null && !user.chatIds.isEmpty()) {
-            return Chat.find("{ '_id': { $in: ?1 } }", user.chatIds).list();
+            // ChatWithMostRecentMessage is a DTO of the Chat entity
+            return ChatWithMostRecentMessage.mongoCollection()
+                    .aggregate(Arrays.asList(
+                            // Filter for the chats user has access to
+                            Aggregates.match(Filters.in("_id", user.chatIds)),
+                            // Match all the ChatMessages with that chatId
+                            Aggregates.lookup("ChatMessage", "_id", "chatId", "messages"),
+                            // Get just the most recent message
+                            Aggregates.addFields(
+                                    new Field<>("mostRecentMessage",
+                                            new Document("$arrayElemAt", Arrays.asList(
+                                                            new Document("$sortArray",
+                                                                    new Document("input", "$messages")
+                                                                            .append("sortBy", new Document("timestamp", -1))),
+                                                            0)))
+                            ),
+                            // Exclude the messages nested document created in the lookup
+                            Aggregates.project(new Document("messages", 0))
+                    ))
+                    .into(new ArrayList<>());
         }
 
         return Collections.emptyList();

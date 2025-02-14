@@ -1,5 +1,6 @@
 package org.chatq.users;
 
+import io.quarkus.mongodb.panache.PanacheMongoEntityBase;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -72,7 +73,7 @@ public class UserResource {
             return Response.status(Response.Status.BAD_REQUEST).entity("Ouch, we couldn't find your profile").build();
         }
 
-        List<Chat> chats = userService.getUserChats(username);
+        List<PanacheMongoEntityBase> chats = userService.getUserChats(username);
         return Response.ok().entity(chats).build();
     }
 

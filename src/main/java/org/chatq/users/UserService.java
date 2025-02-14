@@ -1,5 +1,6 @@
 package org.chatq.users;
 
+import io.quarkus.mongodb.panache.PanacheMongoEntityBase;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.bson.types.ObjectId;
@@ -30,7 +31,7 @@ public class UserService {
         return User.hasChat(username, chatId);
     }
 
-    public List<Chat> getUserChats(String username) {
+    public List<PanacheMongoEntityBase> getUserChats(String username) {
         return User.getChats(username);
     }
 
