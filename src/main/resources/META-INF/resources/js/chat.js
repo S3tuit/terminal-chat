@@ -6,8 +6,8 @@ const sendBtn = document.getElementById("send-btn");
 const activeUsersList = document.getElementById("active-users-list");
 let socket;
 
-// Get the JWT token (you need to replace this logic with your actual token retrieval mechanism)
-const token = localStorage.getItem("jwt"); // Assuming it's stored in localStorage
+// Get the JWT token
+const token = localStorage.getItem("jwt");
 
 if (!token) {
     alert("You are not logged in. Please log in to access the chat.");
@@ -127,3 +127,57 @@ function setupActiveUsersSSE() {
 
 // Initialize the active users SSE connection
 setupActiveUsersSSE();
+
+
+// Invite button
+// Get references to the dialog and its buttons
+const createInviteBtn = document.getElementById("create-invite-btn");
+const createInviteDialog = document.getElementById("invite-dialog");
+const createInviteConfirmBtn = document.getElementById("create-invite-confirm-btn");
+const closeDialogBtn = document.getElementById("invite-dialog-close-btn");
+const timePeriodSelect = document.getElementById("time-period-select");
+
+// Function to show the dialog
+function showDialog() {
+    createInviteDialog.style.display = "flex";
+}
+
+// Function to hide the dialog
+function hideDialog() {
+    createInviteDialog.style.display = "none";
+}
+
+// Attach event listeners
+createInviteBtn.addEventListener("click", showDialog);
+closeDialogBtn.addEventListener("click", hideDialog);
+
+// Handle the Create button in the dialog
+createInviteConfirmBtn.addEventListener("click", async () => {
+    const timePeriod = timePeriodSelect.value;
+
+    try {
+        const response = await fetch(`/invite/create-invite?timePeriod=${timePeriod}`, {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({id: chatId}), // pass the chatId
+        });
+
+        if (response.ok) {
+            const invite = await response.json();
+            alert(`Invite created successfully! Code: ${invite.code}`);
+            hideDialog(); // Close the dialog after creating the invite
+        } else {
+            alert("Failed to create invite. Please try again.");
+        }
+    } catch (err) {
+        console.error("Error creating invite:", err);
+        alert("An error occurred. Please try again.");
+    }
+});
+
+// Close the dialog when clicking outside of it
+// dialogOverlay.addEventListener("click", hideDialog);
+
