@@ -10,7 +10,6 @@ import io.quarkus.mongodb.panache.PanacheMongoEntityBase;
 import io.quarkus.mongodb.panache.common.MongoEntity;
 import org.bson.Document;
 import org.bson.types.ObjectId;
-import org.chatq.chat.Chat;
 import org.chatq.chat.ChatWithMostRecentMessage;
 
 import java.util.*;
@@ -92,6 +91,9 @@ public class User extends PanacheMongoEntity {
             return false;
         }
 
+        if (user.chatIds == null) {
+            user.chatIds = new HashSet<>();
+        }
         boolean added = user.chatIds.add(chatId);
 
         if (added) {

@@ -35,17 +35,4 @@ public class UserService {
         return User.getChats(username);
     }
 
-    public boolean addChatToUser(String userId, ObjectId chatId) {
-        if (userId == null || chatId == null) {
-            throw new NullPointerException("userId and chatId cannot be null");
-        }
-
-        try{
-            ObjectId userIdObj = new ObjectId(userId);
-            return User.addChatIdToUser(userIdObj, chatId);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
 }

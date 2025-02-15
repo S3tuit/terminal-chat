@@ -79,8 +79,7 @@ public class ChatResource {
         }
 
         // Create a new Chat entity and assign its id to the user who created it
-        Chat createdChat = chatService.createChat(chat.direct, chat.chatName, userId);
-        if (createdChat != null && userService.addChatToUser(userId, createdChat.id)) {
+        if (chatService.createChat(chat.direct, chat.chatName, userId)) {
             return Response.status(Response.Status.CREATED).build();
         } else {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Something went on our end, sorry").build();

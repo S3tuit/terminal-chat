@@ -2,7 +2,10 @@ package org.chatq.invite;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import org.bson.types.ObjectId;
+import org.chatq.chat.Chat;
+import org.chatq.users.User;
 import org.chatq.users.UserService;
 
 import java.time.Duration;
@@ -64,6 +67,7 @@ public class InviteService {
         return Invite.createNewInvite(chatId, expiresAt);
     }
 
+
     public boolean inviteUserToChat(String inviteCode, String userId) {
         if (inviteCode == null || inviteCode.isEmpty()) {
             throw new IllegalArgumentException("inviteCode cannot be null or empty");
@@ -71,7 +75,19 @@ public class InviteService {
         ObjectId chatId = Invite.getChatIdInsideInvite(inviteCode);
 
         if (chatId != null) {
-            return userService.addChatToUser(userId, chatId);
+
+            ObjectId userIdObj;
+            try{
+                userIdObj = new ObjectId(userId);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+
+            boolean result = Chat.addUserToChat(userIdObj, chatId);
+            if (result) {
+                return User.addChatIdToUser(userIdObj, chatId);
+            }
         }
         return false;
     }

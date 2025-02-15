@@ -2,6 +2,7 @@ package org.chatq.invite;
 
 import io.quarkus.mongodb.panache.PanacheMongoEntity;
 import io.quarkus.mongodb.panache.common.MongoEntity;
+import jakarta.transaction.Transactional;
 import org.bson.codecs.pojo.annotations.BsonIgnore;
 import org.bson.types.ObjectId;
 
@@ -56,6 +57,7 @@ public class Invite extends PanacheMongoEntity {
             return null;
         }
     }
+
 
     // Returns the chatId of the invite if it's a valid invite at db
     public static ObjectId getChatIdInsideInvite(String inviteCode) {
