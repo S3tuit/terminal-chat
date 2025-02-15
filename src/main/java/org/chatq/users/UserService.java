@@ -5,10 +5,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.bson.types.ObjectId;
 import org.chatq.auth.AuthService;
-import org.chatq.chat.Chat;
 
 import java.util.List;
-import java.util.Set;
 
 @ApplicationScoped
 public class UserService {
@@ -32,7 +30,7 @@ public class UserService {
     }
 
     public List<PanacheMongoEntityBase> getUserChats(String username) {
-        return User.getChats(username);
+        return User.getChatsAndLatestMsg(username);
     }
 
 }

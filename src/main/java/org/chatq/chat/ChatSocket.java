@@ -1,5 +1,7 @@
 package org.chatq.chat;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.websocket.*;
@@ -9,27 +11,31 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import org.bson.types.ObjectId;
 import org.chatq.auth.AuthService;
+import org.chatq.users.User;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-@ServerEndpoint(value = "/chat/ws/{chatId}")
+@ServerEndpoint(value = "/chat/ws")
 @Produces(MediaType.APPLICATION_JSON)
 @ApplicationScoped
 public class ChatSocket {
 
-    private final ConcurrentHashMap<String, ConcurrentHashMap<Session, String>> sessionMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Session, String> sessionMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Set<String>> onlineUserMap = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Set<String>> activeUserMap = new ConcurrentHashMap<>();
 
-    @Inject
-    ChatSseResource chatSseResource;
     @Inject
     AuthService authService;
+    @Inject
+    ObjectMapper objectMapper;
 
     @OnOpen
-    public void onOpen(Session session, @PathParam("chatId") String chatId) {
+    public void onOpen(Session session) {
         try {
             // Check for token validity
             List<String> tokenList = session.getRequestParameterMap().get("token");
@@ -39,21 +45,16 @@ public class ChatSocket {
             }
             String token = tokenList.getFirst();
 
-            // Check if the @PathParam("chatId") is a valid Chat entity at db
-            ObjectId chatIdObj = this.castChatId(chatId);
-            if (chatIdObj == null || Chat.getChatIdIfExists(chatIdObj) == null) {
-                session.close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "That's surely not a valid chat"));
-                return;
-            }
-
             // Check for user permission
-            String username = authService.getUsernameIfPermission(token, chatIdObj);
+            String username = authService.getUsernameIfPermission(token);
             if (username == null) {
                 session.close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "Hold on, bro, limited zone"));
                 return;
             }
-            this.addToSessionMap(chatId, session, username);
-            this.streamActiveUsernames(chatId);
+
+            this.sessionMap.put(session, username);
+            this.addUsernameToUserMap(username);
+
 
         } catch (Exception e) {
             // If something goes wrong, close session
@@ -67,45 +68,59 @@ public class ChatSocket {
         }
     }
 
-    private void addToSessionMap(String chatId, Session session, String username) {
-        sessionMap.computeIfAbsent(chatId, k -> new ConcurrentHashMap<>())
-                .put(session, username);
+    private void addUsernameToUserMap(String username) {
+        for (ObjectId chatIdObj : User.getChatIds(username)) {
+            onlineUserMap.computeIfAbsent(chatIdObj.toString(), set -> new HashSet<>())
+                    .add(username);
+        }
+    }
+
+    private void removeUsernameToUserMap(String username) {
+        for (ObjectId chatIdObj : User.getChatIds(username)) {
+            onlineUserMap.computeIfPresent(chatIdObj.toString(), (k, userSet) -> {
+                userSet.remove(username);
+                return userSet.isEmpty() ? null : userSet;
+            });
+        }
     }
 
     @OnMessage
-    public void onMessage(Session session, String message, @PathParam("chatId") String chatId) {
-        ObjectId chatIdObj = this.castChatId(chatId);
-        if (chatIdObj == null) {
-            return;
-        }
+    // Expecting a JSON containing {chatId: String, message: String}
+    public void onMessage(Session session, String incomingMsg) {
+        try{
+            ChatMessage chatMessage = objectMapper.readValue(incomingMsg, ChatMessage.class);
+            chatMessage.timestamp = Instant.now();
+            if (chatMessage.isValid()) {
+                chatMessage.persist();
+                this.broadcast(chatMessage);
+            }
 
-        String username = sessionMap.get(chatId).get(session);
-        ChatMessage chatMessage = new ChatMessage(username, message, Instant.now(), chatIdObj);
-        chatMessage.persist();
-        // chatMessage.toJsonNoChatId() is a custom converter to a valid json string
-        this.broadcast(chatMessage.toJsonNoChatId(), chatId);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @OnClose
-    public void onClose(Session session, @PathParam("chatId") String chatId) {
+    public void onClose(Session session) {
         try {
-            sessionMap.get(chatId).remove(session);
+            String username = sessionMap.remove(session);
+            this.removeUsernameToUserMap(username);
         } catch (NullPointerException e) {
             System.out.println("We chouldn't close the websocket session");
         }
-        this.streamActiveUsernames(chatId);
+
     }
 
     @OnError
-    public void onError(Session session, @PathParam("chatId") String chatId, Throwable throwable) {
+    public void onError(Session session, Throwable throwable) {
         try {
-            sessionMap.get(chatId).remove(session);
+            String username = sessionMap.remove(session);
+            this.removeUsernameToUserMap(username);
         } catch (NullPointerException e) {
             System.out.println("We chouldn't close the failed websocket session");
         }
         System.out.println("Error in the chat socket");
         throwable.printStackTrace();
-        this.streamActiveUsernames(chatId);
     }
 
     private ObjectId castChatId(String chatId){
@@ -119,10 +134,10 @@ public class ChatSocket {
         }
     }
 
-    private void broadcast(String chatMessage, String chatId) {
+    private void broadcast(ChatMessage chatMessage) {
 
-        sessionMap.get(chatId).forEachKey(1, session -> session.getAsyncRemote().
-                sendObject(chatMessage, sendResult -> {
+        sessionMap.forEachKey(1, session -> session.getAsyncRemote().
+                sendText(chatMessage.toJson(), sendResult -> {
                     if (sendResult.getException() != null) {
                         sendResult.getException().printStackTrace();
                     }
@@ -130,14 +145,6 @@ public class ChatSocket {
 
     }
 
-    public void streamActiveUsernames(String chatId) {
-        chatSseResource.streamActiveUsernames(this.getActiveUsernames(chatId), chatId);
-    }
+    private void broadcastOnlineUsernames(Set<String> usernames) {}
 
-    public Collection<String> getActiveUsernames(String chatId) {
-        if (sessionMap.get(chatId) != null) {
-            return sessionMap.get(chatId).values();
-        };
-        return null;
-    }
 }

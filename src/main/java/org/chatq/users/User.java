@@ -55,7 +55,7 @@ public class User extends PanacheMongoEntity {
         return User.find("{ 'username': ?1, 'chatIds': ?2 }", username, chatId).firstResult() != null;
     }
 
-    public static List<PanacheMongoEntityBase> getChats(String username) {
+    public static List<PanacheMongoEntityBase> getChatsAndLatestMsg(String username) {
         User user = User.find("{ 'username': ?1 }", username).firstResult();
 
         if (user != null && user.chatIds != null && !user.chatIds.isEmpty()) {
@@ -82,6 +82,14 @@ public class User extends PanacheMongoEntity {
         }
 
         return Collections.emptyList();
+    }
+
+    public static Set<ObjectId> getChatIds(String username) {
+        User user = User.find("{ 'username': ?1 }", username).firstResult();
+        if (user != null && user.chatIds != null && !user.chatIds.isEmpty()) {
+            return user.chatIds;
+        }
+        return Collections.emptySet();
     }
 
     // returns true if the chatId was added, false if it was already present or user not found

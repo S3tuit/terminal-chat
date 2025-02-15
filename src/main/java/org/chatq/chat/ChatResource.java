@@ -32,15 +32,6 @@ public class ChatResource {
     @Inject
     ChatService chatService;
 
-    @GET
-    @Path("/active-users")
-    public Response getActiveUsernames(@QueryParam("chatId") ObjectId chatId) {
-        if (chatId == null) {
-            return Response.status(Response.Status.BAD_REQUEST).entity("Parameters not valid.").build();
-        }
-        Collection<String> activeUsername = chatSocket.getActiveUsernames(chatId.toString());
-        return Response.ok(activeUsername).build();
-    }
 
     @GET
     @RolesAllowed({"User"})
