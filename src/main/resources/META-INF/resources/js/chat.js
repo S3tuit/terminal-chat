@@ -1,5 +1,7 @@
-// Get chatId from the URL
-const chatId = window.location.pathname.split("/").pop();
+import {getWebSocket, sendMessage, registerMessageHandler, connectWebSocket} from './websocket-service.js';
+
+// Get currChatId from the URL
+const currChatId = window.location.pathname.split("/").pop();
 const messageBox = document.getElementById("message-box");
 const messageInput = document.getElementById("message-input");
 const sendBtn = document.getElementById("send-btn");
@@ -17,13 +19,41 @@ if (!token) {
 // Load chat messages on page load
 window.addEventListener("DOMContentLoaded", async () => {
     await loadMessages();
-    setupWebSocket();
+    setupMessageHandlers();
+
+    socket = getWebSocket();
+    if (!socket) {
+        connectWebSocket(token);
+        socket = getWebSocket();
+    }
 });
+
+// Setup message handlers using the websocket-service
+function setupMessageHandlers() {
+    registerMessageHandler("ChatMessage", handleChatMessage);
+}
+
+function handleChatMessage(incomingMessage) {
+    const { message: message, fromUsername, timestamp, chatId } = incomingMessage; // Extract from message
+
+    if (chatId !== currChatId) { return } // Filter for current chatId
+
+    const messageDiv = document.createElement("div");
+    messageDiv.classList.add("message");
+    messageDiv.classList.add(fromUsername === "You" ? "sent" : "received");
+
+    messageDiv.innerHTML = `
+        <p>${message}</p> 
+        <p class="timestamp">${fromUsername} - ${new Date(timestamp).toLocaleString()}</p>
+    `;
+    messageBox.appendChild(messageDiv);
+    messageBox.scrollTop = messageBox.scrollHeight;
+}
 
 // Function to load messages
 async function loadMessages(page = 0) {
     try {
-        const response = await fetch(`/chat/messages?chatId=${chatId}&page=${page}`, {
+        const response = await fetch(`/chat/messages?chatId=${currChatId}&page=${page}`, {
             headers: {
                 Authorization: `Bearer ${token}`, // Include the Bearer token
             },
@@ -58,75 +88,20 @@ function displayMessages(messages) {
     messageBox.scrollTop = messageBox.scrollHeight;
 }
 
-// Setup WebSocket for live messages
-function setupWebSocket() {
-    socket = new WebSocket(`ws://${location.host}/chat/ws/${chatId}?token=${token}`); // Include token as a query parameter
-
-    // Handle incoming messages
-    socket.onmessage = (event) => {
-        const { message, fromUsername, timestamp } = JSON.parse(event.data);
-
-        const messageDiv = document.createElement("div");
-        messageDiv.classList.add("message");
-        messageDiv.classList.add(fromUsername === "You" ? "sent" : "received");
-
-        messageDiv.innerHTML = `
-            <p>${message}</p>
-            <p class="timestamp">${fromUsername} - ${new Date(timestamp).toLocaleString()}</p>
-        `;
-        messageBox.appendChild(messageDiv);
-
-        // Scroll to the bottom
-        messageBox.scrollTop = messageBox.scrollHeight;
-    };
-
-    // Handle errors
-    socket.onerror = (error) => console.error("WebSocket error:", error);
-
-    // Handle connection close
-    socket.onclose = () => console.log("WebSocket connection closed.");
-}
 
 // Function to send a message
 sendBtn.addEventListener("click", () => {
     const message = messageInput.value.trim();
     if (message) {
-        socket.send(message); // Send message to WebSocket
+
+        const messagePayload = {
+            chatId: currChatId,
+            message: message
+        }
+        socket.send(JSON.stringify(messagePayload)); // Send message to WebSocket
         messageInput.value = ""; // Clear input
     }
 });
-
-// Function to update active users
-function updateActiveUsers(users) {
-    activeUsersList.innerHTML = ""; // Clear the current list
-    users.forEach((username) => {
-        const userItem = document.createElement("li");
-        userItem.textContent = username; // Set the username
-        activeUsersList.appendChild(userItem); // Add to the list
-    });
-}
-
-// Set up the SSE connection to listen for active users
-function setupActiveUsersSSE() {
-    const eventSource = new EventSource(`/chat/sse/${chatId}?token=${token}`); // Include token if needed
-
-    eventSource.onmessage = (event) => {
-        try {
-            const activeUsers = JSON.parse(event.data); // Parse the array of usernames
-            updateActiveUsers(activeUsers); // Update the UI
-        } catch (err) {
-            console.error("Error parsing active users SSE data:", err);
-        }
-    };
-
-    eventSource.onerror = () => {
-        console.error("Error with SSE connection. Attempting to reconnect...");
-        setTimeout(setupActiveUsersSSE, 5000); // Reconnect after 5 seconds
-    };
-}
-
-// Initialize the active users SSE connection
-setupActiveUsersSSE();
 
 
 // Invite button
@@ -162,7 +137,7 @@ createInviteConfirmBtn.addEventListener("click", async () => {
                 Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({id: chatId}), // pass the chatId
+            body: JSON.stringify({id: currChatId}), // pass the currChatId
         });
 
         if (response.ok) {
@@ -178,6 +153,4 @@ createInviteConfirmBtn.addEventListener("click", async () => {
     }
 });
 
-// Close the dialog when clicking outside of it
-// dialogOverlay.addEventListener("click", hideDialog);
 

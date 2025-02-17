@@ -6,6 +6,7 @@ import org.bson.codecs.pojo.annotations.BsonIgnore;
 import org.bson.types.ObjectId;
 
 import java.time.Instant;
+import java.util.Set;
 
 @MongoEntity
 public class Chat extends PanacheMongoEntity {
@@ -15,24 +16,35 @@ public class Chat extends PanacheMongoEntity {
     public String chatName;
     public ObjectId createdBy;
     public Instant createdAt;
+    public Set<ObjectId> userIds;
 
 
     public Chat () {};
 
-    public Chat (Boolean direct, String chatName, ObjectId createdBy, Instant createdAt) {
+    public Chat (Boolean direct, String chatName, ObjectId createdBy, Instant createdAt, Set<ObjectId> userIds) {
         this.direct = direct;
         this.chatName = chatName;
         this.createdBy = createdBy;
         this.createdAt = createdAt;
+        this.userIds = userIds;
     }
 
-    public static Chat findChatById(ObjectId id) {
-        return findById(id);
-    }
+    // returns true if the userId was added, false if it was already present or else
+    public static boolean addUserToChat (ObjectId userId, ObjectId chatId) {
+        Chat chat = Chat.findById(chatId);
+        if (chat == null) {
+            return false;
+        }
 
+        boolean added = chat.userIds.add(userId);
+        if (added) {
+            chat.update();
+        }
+        return added;
+    }
 
     public static ObjectId getChatIdIfExists(ObjectId id) {
-        Chat chat = findChatById(id);
+        Chat chat = findById(id);
         return chat != null ? chat.id : null;
     }
 

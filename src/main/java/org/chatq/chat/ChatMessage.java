@@ -21,11 +21,11 @@ public class ChatMessage extends PanacheMongoEntity {
 
     public ChatMessage() {}
 
-    public ChatMessage(String fromUsername, String message, Instant timestamp, Chat chat) {
+    public ChatMessage(String fromUsername, String message, String chatId) {
         this.fromUsername = fromUsername;
         this.message = message;
-        this.timestamp = timestamp;
-        this.chatId = chat.id;
+        this.timestamp = Instant.now();
+        this.chatId = new ObjectId(chatId);
     }
 
     public ChatMessage(String fromUsername, String message, Instant timestamp, ObjectId chatId) {
@@ -33,6 +33,13 @@ public class ChatMessage extends PanacheMongoEntity {
         this.message = message;
         this.timestamp = timestamp;
         this.chatId = chatId;
+    }
+
+    public boolean isValid() {
+        return fromUsername != null
+                && message != null
+                && timestamp != null
+                && chatId != null;
     }
 
     // Return a page of 10 (max) ChatMessages ordered by the latest sent
@@ -47,15 +54,16 @@ public class ChatMessage extends PanacheMongoEntity {
         return ChatMessage.getChatMessagesPage(chatId, 0);
     }
 
-    // Since the ObjectMapper doesn't work well with ObjectId and Instant...
-    // return a valid json excluding the chatId value
-    public String toJsonNoChatId() {
+    // Used because the ObjectMapper doesn't work well with ObjectId and Instant...
+    // this is a custom converter, returns a valid json. It includes a class field
+    public String toJson() {
 
         return String.format(
-                "{ \"fromUsername\": \"%s\", \"message\": \"%s\", \"timestamp\": \"%s\" }",
+                "{ \"type\": \"ChatMessage\", \"fromUsername\": \"%s\", \"message\": \"%s\", \"timestamp\": \"%s\", \"chatId\": \"%s\" }",
                 this.fromUsername,
                 this.message,
-                this.timestamp.toString() // Use ISO-8601 format for timestamp
+                this.timestamp.toString(), // Use ISO-8601 format for timestamp
+                this.chatId.toString()
         );
     }
 }

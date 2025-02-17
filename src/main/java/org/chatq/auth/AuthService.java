@@ -32,14 +32,13 @@ public class AuthService {
         }
     }
 
-    // return the username associated to the token if it's valid and if the user has access to that chat
-    public String getUsernameIfPermission(String token, ObjectId chatId) {
+    // return the username associated to the token if it's valid and if the user has the role User
+    public String getUsernameIfPermission(String token) {
         try {
             JsonWebToken jwt = jwtParser.parse(token);
             if (
                     jwt.getClaim("upn") != null
                     && jwt.getGroups().contains("User")
-                    && User.hasChat(jwt.getClaim("upn"), chatId)
             ) {
                 return jwt.getClaim("upn").toString();
             }
@@ -49,16 +48,6 @@ public class AuthService {
         }
 
         return null;
-    }
-
-    public String getUsernameIfPermission(String token, String chatId) {
-        try {
-            ObjectId chatIdObj = new ObjectId(chatId);
-            return getUsernameIfPermission(token, chatIdObj);
-        } catch (Exception ex) {
-            // TO CHANGE: this logs the JWT claims as plain text
-            return null;
-        }
     }
 
     public static String getClaimFromCtx(SecurityContext ctx, String claimName) {

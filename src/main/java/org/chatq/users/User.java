@@ -10,7 +10,6 @@ import io.quarkus.mongodb.panache.PanacheMongoEntityBase;
 import io.quarkus.mongodb.panache.common.MongoEntity;
 import org.bson.Document;
 import org.bson.types.ObjectId;
-import org.chatq.chat.Chat;
 import org.chatq.chat.ChatWithMostRecentMessage;
 
 import java.util.*;
@@ -56,7 +55,7 @@ public class User extends PanacheMongoEntity {
         return User.find("{ 'username': ?1, 'chatIds': ?2 }", username, chatId).firstResult() != null;
     }
 
-    public static List<PanacheMongoEntityBase> getChats(String username) {
+    public static List<PanacheMongoEntityBase> getChatsAndLatestMsg(String username) {
         User user = User.find("{ 'username': ?1 }", username).firstResult();
 
         if (user != null && user.chatIds != null && !user.chatIds.isEmpty()) {
@@ -85,6 +84,14 @@ public class User extends PanacheMongoEntity {
         return Collections.emptyList();
     }
 
+    public static Set<ObjectId> getChatIds(String username) {
+        User user = User.find("{ 'username': ?1 }", username).firstResult();
+        if (user != null && user.chatIds != null && !user.chatIds.isEmpty()) {
+            return user.chatIds;
+        }
+        return Collections.emptySet();
+    }
+
     // returns true if the chatId was added, false if it was already present or user not found
     public static boolean addChatIdToUser(ObjectId userId, ObjectId chatId) {
         User user = User.findById(userId);
@@ -92,6 +99,9 @@ public class User extends PanacheMongoEntity {
             return false;
         }
 
+        if (user.chatIds == null) {
+            user.chatIds = new HashSet<>();
+        }
         boolean added = user.chatIds.add(chatId);
 
         if (added) {

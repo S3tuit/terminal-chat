@@ -5,10 +5,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.bson.types.ObjectId;
 import org.chatq.auth.AuthService;
-import org.chatq.chat.Chat;
 
 import java.util.List;
-import java.util.Set;
 
 @ApplicationScoped
 public class UserService {
@@ -32,20 +30,7 @@ public class UserService {
     }
 
     public List<PanacheMongoEntityBase> getUserChats(String username) {
-        return User.getChats(username);
+        return User.getChatsAndLatestMsg(username);
     }
 
-    public boolean addChatToUser(String userId, ObjectId chatId) {
-        if (userId == null || chatId == null) {
-            throw new NullPointerException("userId and chatId cannot be null");
-        }
-
-        try{
-            ObjectId userIdObj = new ObjectId(userId);
-            return User.addChatIdToUser(userIdObj, chatId);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
 }
