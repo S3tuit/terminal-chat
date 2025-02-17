@@ -1,3 +1,44 @@
+import { getWebSocket, registerMessageHandler, connectWebSocket } from './websocket-service.js'; // Import from websocket-service.js
+
+let socket;
+
+// Load chats and setup message handlers on page load
+window.addEventListener("DOMContentLoaded", async () => {
+    await loadChats();
+    setupMessageHandler(); // Setup message handler
+
+    socket = getWebSocket(); // Get the socket from the service
+    if (!socket) {
+        // Handle case where socket might not be connected yet (e.g., direct navigation to /chats)
+        const token = localStorage.getItem("jwt");
+        if (token) {
+            connectWebSocket(token); // Connect if token is available
+            socket = getWebSocket(); // Get it again after potentially connecting
+        }
+    }
+});
+
+function setupMessageHandler() {
+    registerMessageHandler("ChatMessage", handleChatMessage);
+}
+
+function handleChatMessage(incomingMessage) {
+    const { incomingMessage: message, chatId } = incomingMessage;
+
+    // Update the chat snippet in the chat list if the message is for a chat in the list
+    updateChatSnippetInList(incomingMessage);
+}
+
+function updateChatSnippetInList(incomingMessage) {
+    const chatButton = document.querySelector(`.chat-button[data-chat-id="${incomingMessage.chatId}"]`);
+    if (chatButton) {
+        const snippetElement = chatButton.querySelector(".message-snippet");
+        if (snippetElement) {
+            snippetElement.textContent = `${incomingMessage.fromUsername}: ${truncateMessage(incomingMessage.message)}`;
+        }
+    }
+}
+
 // Function to fetch chats and display them
 async function loadChats() {
     const jwt = localStorage.getItem("jwt");

@@ -59,7 +59,7 @@ public class ChatMessage extends PanacheMongoEntity {
     public String toJson() {
 
         return String.format(
-                "{ \"class\": \"ChatMessage\", \"fromUsername\": \"%s\", \"message\": \"%s\", \"timestamp\": \"%s\", \"chatId\": \"%s\" }",
+                "{ \"type\": \"ChatMessage\", \"fromUsername\": \"%s\", \"message\": \"%s\", \"timestamp\": \"%s\", \"chatId\": \"%s\" }",
                 this.fromUsername,
                 this.message,
                 this.timestamp.toString(), // Use ISO-8601 format for timestamp
