@@ -14,5 +14,19 @@ services:
     volumes:
       - mongo_data:/data/db
 
+  redis:
+    image: redis:7.2-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command:
+      - redis-server
+      - --save 20 1
+      - --loglevel warning
+      - --requirepass ${REDIS_DB_PASSWORD}
+    volumes:
+      - redis_data:/data
+
 volumes:
   mongo_data:
+  redis_data:
