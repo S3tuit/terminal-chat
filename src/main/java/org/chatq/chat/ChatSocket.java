@@ -2,6 +2,9 @@ package org.chatq.chat;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.quarkus.redis.datasource.ReactiveRedisDataSource;
+import io.quarkus.redis.datasource.keys.ReactiveKeyCommands;
+import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.websocket.*;
@@ -14,6 +17,7 @@ import org.chatq.users.User;
 
 import java.io.IOException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,6 +37,8 @@ public class ChatSocket {
     AuthService authService;
     @Inject
     ObjectMapper objectMapper;
+    @Inject
+    SessionService sessionService;
 
     @OnOpen
     public void onOpen(Session session) {
@@ -52,9 +58,8 @@ public class ChatSocket {
                 return;
             }
 
-            this.sessionUsernameMap.put(session, username);
+            this.storeSession(session.getId(), username);
             this.addUsernameToSessionUserMap(username, session);
-
 
         } catch (Exception e) {
             // If something goes wrong, close session
@@ -68,6 +73,12 @@ public class ChatSocket {
         }
     }
 
+
+    private void storeSession(String sessionId, String username) {
+        Set<ObjectId> chatIds = User.getChatIds(username);
+        this.sessionService.storeSession(sessionId, username, chatIds).await().indefinitely();
+    }
+
     private void addUsernameToSessionUserMap(String username, Session session) {
         for (ObjectId chatIdObj : User.getChatIds(username)) {
             onlineUserMap.computeIfAbsent(chatIdObj, set -> new HashSet<>())
@@ -75,14 +86,6 @@ public class ChatSocket {
         }
     }
 
-    private void removeUsernameToUserMap(String username, Session session) {
-        for (ObjectId chatIdObj : User.getChatIds(username)) {
-            onlineUserMap.computeIfPresent(chatIdObj, (k, userSet) -> {
-                userSet.remove(session);
-                return userSet.isEmpty() ? null : userSet;
-            });
-        }
-    }
 
     @OnMessage
     // Expecting a JSON containing {chatId: String, message: String}
@@ -90,11 +93,23 @@ public class ChatSocket {
         try{
             ChatMessage chatMessage = objectMapper.readValue(incomingMsg, ChatMessage.class);
             chatMessage.timestamp = Instant.now();
-            chatMessage.fromUsername = sessionUsernameMap.get(session);
-            if (chatMessage.isValid()) {
-                chatMessage.persist();
-                this.broadcast(chatMessage);
-            }
+
+            System.out.println("Sending: " + chatMessage.message);
+            sessionService.getValueFromSession(session.getId(), "username")
+                    .onItem().ifNotNull().transformToUni(username -> {
+                        chatMessage.fromUsername = username;
+
+                        if (chatMessage.isValid()) {
+                            System.out.println("Valid message: " + username);
+                            chatMessage.persist();
+                            this.broadcast(chatMessage);
+                        }
+                        return Uni.createFrom().voidItem();
+                    })
+                    .subscribe().with(
+                            ignored -> {},
+                    failure -> System.out.println("Failed: " + failure.getMessage())
+                    );
 
         } catch (JsonProcessingException e) {
             e.printStackTrace();
@@ -105,7 +120,7 @@ public class ChatSocket {
     public void onClose(Session session) {
         try {
             String username = sessionUsernameMap.remove(session);
-            this.removeUsernameToUserMap(username, session);
+            sessionService.removeSession(session.getId());
         } catch (NullPointerException e) {
             System.out.println("We couldn't close the websocket session");
         }
@@ -116,23 +131,12 @@ public class ChatSocket {
     public void onError(Session session, Throwable throwable) {
         try {
             String username = sessionUsernameMap.remove(session);
-            this.removeUsernameToUserMap(username, session);
+            sessionService.removeSession(session.getId());
         } catch (NullPointerException e) {
             System.out.println("We couldn't close the failed websocket session");
         }
         System.out.println("Error in the chat socket");
         throwable.printStackTrace();
-    }
-
-    private ObjectId castChatId(String chatId){
-        ObjectId chatIdObj;
-        try{
-            chatIdObj = new ObjectId(chatId);
-            return chatIdObj;
-        } catch (Exception ex){
-            ex.printStackTrace();
-            return null;
-        }
     }
 
     private void broadcast(ChatMessage chatMessage) {

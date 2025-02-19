@@ -34,6 +34,10 @@ public class AuthService {
 
     // return the username associated to the token if it's valid and if the user has the role User
     public String getUsernameIfPermission(String token) {
+        if (token == null || token.isEmpty()) {
+            return null;
+        }
+
         try {
             JsonWebToken jwt = jwtParser.parse(token);
             if (
