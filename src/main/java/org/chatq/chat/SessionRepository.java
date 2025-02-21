@@ -1,28 +1,25 @@
 package org.chatq.chat;
 
 import io.quarkus.redis.datasource.ReactiveRedisDataSource;
-import io.quarkus.redis.datasource.hash.HashCommands;
 import io.quarkus.redis.datasource.hash.ReactiveHashCommands;
-import io.quarkus.redis.datasource.keys.ReactiveKeyCommands;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.bson.types.ObjectId;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 @ApplicationScoped
-public class SessionService {
+public class SessionRepository {
 
     private final ReactiveHashCommands<String, String, String> hashCommands;
 
-    public SessionService(ReactiveRedisDataSource reactive) {
+    public SessionRepository(ReactiveRedisDataSource reactive) {
         this.hashCommands = reactive.hash(String.class);
     }
 
-    // Store a session
-    public Uni<Long> storeSession(String sessionId, String username, Set<ObjectId> chatIds){
+    // Store a session, return a Long indicating the number of fields that were added to the hash
+    public Uni<Long> storeSession(String sessionId, String username, Set<ObjectId> chatIds) {
         String key = "session:" + sessionId;
         return hashCommands.hset(key, Map.of(
                 "username", username,
@@ -36,7 +33,7 @@ public class SessionService {
         return hashCommands.hgetall(key);
     }
 
-    // Retrieve a value
+    // Retrieve a value from a session
     public Uni<String> getValueFromSession(String sessionId, String value) {
         String key = "session:" + sessionId;
         return hashCommands.hget(key, value);
@@ -45,6 +42,6 @@ public class SessionService {
     // Delete a session
     public Uni<Integer> removeSession(String sessionId){
         String key = "session:" + sessionId;
-        return hashCommands.hdel(key);
+        return hashCommands.hdel(key, new String[]{"username", "chatIds"});
     }
 }

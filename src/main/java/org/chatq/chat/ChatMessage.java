@@ -1,17 +1,13 @@
 package org.chatq.chat;
 
-import io.quarkus.mongodb.panache.PanacheMongoEntity;
-import io.quarkus.mongodb.panache.PanacheQuery;
 import io.quarkus.mongodb.panache.common.MongoEntity;
-import io.quarkus.panache.common.Page;
-import io.quarkus.panache.common.Sort;
+import io.quarkus.mongodb.panache.reactive.ReactivePanacheMongoEntity;
 import org.bson.types.ObjectId;
 
 import java.time.Instant;
-import java.util.List;
 
 @MongoEntity
-public class ChatMessage extends PanacheMongoEntity {
+public class ChatMessage extends ReactivePanacheMongoEntity {
 
     public String fromUsername;
     public String message;
@@ -40,18 +36,6 @@ public class ChatMessage extends PanacheMongoEntity {
                 && message != null
                 && timestamp != null
                 && chatId != null;
-    }
-
-    // Return a page of 10 (max) ChatMessages ordered by the latest sent
-    public static List<ChatMessage> getChatMessagesPage(ObjectId chatId, int page) {
-        PanacheQuery<ChatMessage> messages = ChatMessage.
-                find("{ chatId: ?1 }", Sort.by("timestamp", Sort.Direction.Descending), chatId);
-
-        return messages.page(Page.of(page, 10)).list();
-    }
-
-    public static List<ChatMessage> getChatMessagesPage(ObjectId chatId) {
-        return ChatMessage.getChatMessagesPage(chatId, 0);
     }
 
     // Used because the ObjectMapper doesn't work well with ObjectId and Instant...
