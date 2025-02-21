@@ -39,13 +39,13 @@ public class ChatSocket {
     ChatSessionRepository chatSessionRepository;
 
     @OnOpen
-    public Uni<Void> onOpen(Session session) {
+    public void onOpen(Session session) {
         try {
             // Check for token validity
             List<String> tokenList = session.getRequestParameterMap().get("token");
             if (tokenList == null || tokenList.isEmpty()) {
                 session.close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "Hmm, forgot your token?"));
-                return Uni.createFrom().voidItem();
+                return;
             }
             String token = tokenList.getFirst();
 
@@ -53,11 +53,11 @@ public class ChatSocket {
             String username = authService.getUsernameIfPermission(token);
             if (username == null) {
                 session.close(new CloseReason(CloseReason.CloseCodes.VIOLATED_POLICY, "Hold on, bro, limited zone"));
-                return Uni.createFrom().voidItem();
+                return;
             }
             sessionMap.put(session.getId(), session);
 
-            return this.storeSession(session.getId(), username)
+            this.storeSession(session.getId(), username)
                     .flatMap(everythingOk -> {
                         if (!everythingOk) {
                             return closeSessionReactive(session, CloseReason.CloseCodes.UNEXPECTED_CONDITION, "Oh no... something went wrong during validation");
@@ -66,7 +66,12 @@ public class ChatSocket {
                         System.out.println("Session " + session.getId() + " opened");
                         return Uni.createFrom().voidItem();
                     })
-                    .onFailure().invoke(th -> {System.out.println("failedddddd " + th.getMessage());});
+                    .onFailure().invoke(th -> {System.out.println("failedddddd " + th.getMessage());})
+                    .subscribe().with(result -> {
+                        System.out.println("Store session result: " + result);
+                    }, failure -> {
+                        failure.printStackTrace();
+                    });
 
         } catch (Exception e) {
             // If something goes wrong, close session
@@ -77,7 +82,6 @@ public class ChatSocket {
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
-            return Uni.createFrom().voidItem();
         }
     }
 
