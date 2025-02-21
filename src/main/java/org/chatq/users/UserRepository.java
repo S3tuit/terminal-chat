@@ -3,7 +3,9 @@ package org.chatq.users;
 import io.quarkus.mongodb.panache.reactive.ReactivePanacheMongoRepository;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.bson.types.ObjectId;
+import org.chatq.auth.AuthService;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -12,6 +14,14 @@ import java.util.Set;
 
 @ApplicationScoped
 public class UserRepository implements ReactivePanacheMongoRepository<User> {
+
+    @Inject
+    AuthService authService;
+
+    public Uni<User> addUser(String username, String plainPassword) {
+        User user = new User(username, authService.hashPassword(plainPassword));
+        return persist(user);
+    }
 
     public Uni<Boolean> hasChat(String username, ObjectId chatId) {
         if (chatId == null || username == null) {

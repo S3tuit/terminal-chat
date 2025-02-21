@@ -58,7 +58,12 @@ public class ChatService {
                                         .build()
                         );
                     }
-                });
+                })
+                .onFailure().recoverWithItem(th ->
+                        Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                                .entity("Something went on our end: " + th.getMessage())
+                                .build()
+                );
     }
 
     // Create a new Chat entity and assign its ObjectId to chatIds of the User who created it
@@ -80,10 +85,18 @@ public class ChatService {
 
         // Create a new Chat entity and assign its id to the user who created it
         return chatRepository.createChat(chat.direct, chat.chatName, userId)
-                .onItem().ifNotNull().transform(newChat -> Response.status(Response.Status.CREATED)
-                        .entity(newChat).build())
-                .onFailure().recoverWithItem(th -> Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                        .entity("Something went on our end: " + th.getMessage()).build());
+                .onItem().ifNotNull().transform(newChat ->
+                        Response.status(Response.Status.CREATED)
+                        .entity(newChat).build()
+                )
+                .onItem().ifNull().continueWith(() ->
+                        Response.status(Response.Status.BAD_REQUEST)
+                                .entity("Chat NOT created :(")
+                                .build())
+                .onFailure().recoverWithItem(th ->
+                        Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                        .entity("Something went on our end: " + th.getMessage()).build()
+                );
     }
 
     // Dynamically generate HTML pages based on chatId
@@ -99,6 +112,8 @@ public class ChatService {
                     }
                     return file;
                 })
-                .onItem().ifNull().failWith(new WebApplicationException(Response.Status.NOT_FOUND));
+                .onItem().ifNull().failWith(
+                        new WebApplicationException(Response.Status.NOT_FOUND)
+                );
     }
 }

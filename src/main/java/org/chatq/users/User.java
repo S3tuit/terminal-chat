@@ -2,15 +2,9 @@ package org.chatq.users;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.mongodb.client.model.Aggregates;
-import com.mongodb.client.model.Field;
-import com.mongodb.client.model.Filters;
-import io.quarkus.mongodb.panache.PanacheMongoEntityBase;
 import io.quarkus.mongodb.panache.common.MongoEntity;
 import io.quarkus.mongodb.panache.reactive.ReactivePanacheMongoEntity;
-import org.bson.Document;
 import org.bson.types.ObjectId;
-import org.chatq.chat.ChatWithMostRecentMessage;
 
 import java.util.*;
 
