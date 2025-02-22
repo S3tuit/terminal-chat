@@ -3,7 +3,9 @@ package org.chatq.chat;
 import io.quarkus.mongodb.panache.reactive.ReactivePanacheMongoRepository;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import org.bson.types.ObjectId;
+import org.chatq.users.UserRepository;
 
 import java.time.Instant;
 import java.util.Arrays;
@@ -12,11 +14,13 @@ import java.util.HashSet;
 @ApplicationScoped
 public class ChatRepository implements ReactivePanacheMongoRepository<Chat> {
 
+    @Inject
+    UserRepository userRepository;
 
     public Uni<Chat> createChat(Boolean direct, String chatName, String createdBy) {
         try {
-            ObjectId objectId = new ObjectId(createdBy);
-            return createChat(direct, chatName, objectId);
+            ObjectId createdByObjId = new ObjectId(createdBy);
+            return createChat(direct, chatName, createdByObjId);
         } catch (Exception e) {
             e.printStackTrace();
             return Uni.createFrom().nullItem();
@@ -26,9 +30,18 @@ public class ChatRepository implements ReactivePanacheMongoRepository<Chat> {
     // Create a new chat and assign it to the available chats for the user who created it
     public Uni<Chat> createChat(Boolean direct, String chatName, ObjectId createdBy) {
         Chat chat = new Chat(direct, chatName, createdBy, Instant.now(), new HashSet<>(Arrays.asList(createdBy)));
+
         return persist(chat)
-                .chain(() -> this.addUserToChat(createdBy, chat.id))
-                .replaceWith(chat);
+                .flatMap(newChat -> {
+                    if (newChat == null) {
+                        return Uni.createFrom().nullItem();
+                    }
+                    return userRepository.addChatIdToUser(newChat.createdBy, newChat.id);
+                })
+                .replaceWith(chat)
+                .onFailure().invoke(e -> {
+                    System.err.println("Error creating chat: " + e.getMessage());
+                });
     }
 
     public Uni<Boolean> addUserToChat(ObjectId userId, ObjectId chatId) {
@@ -37,7 +50,7 @@ public class ChatRepository implements ReactivePanacheMongoRepository<Chat> {
                     boolean added = chat.userIds.add(userId);
                     if (added) {
                         // persist changes
-                        return chat.update().onItem().transform(ignored -> true);
+                        return chat.update().replaceWith(true);
                     } else {
                         return Uni.createFrom().item(false);
                     }

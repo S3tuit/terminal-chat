@@ -3,7 +3,7 @@ let messageHandlers = {}; // To store message handlers for different message typ
 
 export const connectWebSocket = (token) => {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-        socket = new WebSocket(`ws://${location.host}/chat/ws?token=${token}`);
+        socket = new WebSocket(`ws://${location.host}/chat/ws/${token}`);
 
         socket.onopen = () => {
             console.log("WebSocket connection opened");

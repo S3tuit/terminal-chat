@@ -11,11 +11,11 @@ import java.util.Set;
 // Maps the chatId with the current available connections that have access to that chat, chatId: Set<connectionId>
 
 @ApplicationScoped
-public class ChatConnectionRepository {
+public class ChatConnectionsMap {
 
     private final ReactiveSetCommands<String, String> setCommands;
 
-    public ChatConnectionRepository(ReactiveRedisDataSource reactive) {
+    public ChatConnectionsMap(ReactiveRedisDataSource reactive) {
         this.setCommands = reactive.set(String.class);
     }
 

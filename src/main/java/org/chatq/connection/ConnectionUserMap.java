@@ -12,11 +12,11 @@ import java.util.Set;
 // Map the connectionId with the username and the chatIds the user has access to
 
 @ApplicationScoped
-public class ConnectionRepository {
+public class ConnectionUserMap {
 
     private final ReactiveHashCommands<String, String, String> hashCommands;
 
-    public ConnectionRepository(ReactiveRedisDataSource reactive) {
+    public ConnectionUserMap(ReactiveRedisDataSource reactive) {
         this.hashCommands = reactive.hash(String.class);
     }
 
@@ -30,7 +30,7 @@ public class ConnectionRepository {
     }
 
     // Retrieve a connection
-    public Uni<Map<String, String>> getConnection(String connectionId){
+    public Uni<Map<String, String>> getUserdata(String connectionId){
         String key = "connection:" + connectionId;
         return hashCommands.hgetall(key);
     }
