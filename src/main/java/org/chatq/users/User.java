@@ -2,15 +2,14 @@ package org.chatq.users;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import io.quarkus.mongodb.panache.PanacheMongoEntity;
 import io.quarkus.mongodb.panache.common.MongoEntity;
+import io.quarkus.mongodb.panache.reactive.ReactivePanacheMongoEntity;
 import org.bson.types.ObjectId;
-import org.chatq.chat.Chat;
 
 import java.util.*;
 
 @MongoEntity
-public class User extends PanacheMongoEntity {
+public class User extends ReactivePanacheMongoEntity {
 
     public String username;
     public String hashedPassword;
@@ -43,36 +42,4 @@ public class User extends PanacheMongoEntity {
         }
     }
 
-    public static boolean hasChat(String username, ObjectId chatId) {
-        if (chatId == null || username == null) {
-            return false;
-        }
-        return User.find("{ 'username': ?1, 'chatIds': ?2 }", username, chatId).firstResult() != null;
-    }
-
-    public static List<Chat> getChats(String username) {
-        User user = User.find("{ 'username': ?1 }", username).firstResult();
-
-        // if the user has at least one valid chat
-        if (user != null && user.chatIds != null && !user.chatIds.isEmpty()) {
-            return Chat.find("{ '_id': { $in: ?1 } }", user.chatIds).list();
-        }
-
-        return Collections.emptyList();
-    }
-
-    // returns true if the chatId was added, false if it was already present or user not found
-    public static boolean addChatIdToUser(ObjectId userId, ObjectId chatId) {
-        User user = User.findById(userId);
-        if (user == null) {
-            return false;
-        }
-
-        boolean added = user.chatIds.add(chatId);
-
-        if (added) {
-            user.update();
-        }
-        return added;
-    }
 }

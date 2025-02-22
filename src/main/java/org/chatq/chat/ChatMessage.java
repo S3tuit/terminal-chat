@@ -1,17 +1,13 @@
 package org.chatq.chat;
 
-import io.quarkus.mongodb.panache.PanacheMongoEntity;
-import io.quarkus.mongodb.panache.PanacheQuery;
 import io.quarkus.mongodb.panache.common.MongoEntity;
-import io.quarkus.panache.common.Page;
-import io.quarkus.panache.common.Sort;
+import io.quarkus.mongodb.panache.reactive.ReactivePanacheMongoEntity;
 import org.bson.types.ObjectId;
 
 import java.time.Instant;
-import java.util.List;
 
 @MongoEntity
-public class ChatMessage extends PanacheMongoEntity {
+public class ChatMessage extends ReactivePanacheMongoEntity {
 
     public String fromUsername;
     public String message;
@@ -21,11 +17,11 @@ public class ChatMessage extends PanacheMongoEntity {
 
     public ChatMessage() {}
 
-    public ChatMessage(String fromUsername, String message, Instant timestamp, Chat chat) {
+    public ChatMessage(String fromUsername, String message, String chatId) {
         this.fromUsername = fromUsername;
         this.message = message;
-        this.timestamp = timestamp;
-        this.chatId = chat.id;
+        this.timestamp = Instant.now();
+        this.chatId = new ObjectId(chatId);
     }
 
     public ChatMessage(String fromUsername, String message, Instant timestamp, ObjectId chatId) {
@@ -35,27 +31,23 @@ public class ChatMessage extends PanacheMongoEntity {
         this.chatId = chatId;
     }
 
-    // Return a page of 10 (max) ChatMessages ordered by the latest sent
-    public static List<ChatMessage> getChatMessagesPage(ObjectId chatId, int page) {
-        PanacheQuery<ChatMessage> messages = ChatMessage.
-                find("{ chatId: ?1 }", Sort.by("timestamp", Sort.Direction.Descending), chatId);
-
-        return messages.page(Page.of(page, 10)).list();
+    public boolean messageValidity() {
+        return fromUsername != null
+                && message != null
+                && timestamp != null
+                && chatId != null;
     }
 
-    public static List<ChatMessage> getChatMessagesPage(ObjectId chatId) {
-        return ChatMessage.getChatMessagesPage(chatId, 0);
-    }
-
-    // Since the ObjectMapper doesn't work well with ObjectId and Instant...
-    // return a valid json excluding the chatId value
-    public String toJsonNoChatId() {
+    // Used because the ObjectMapper doesn't work well with ObjectId and Instant...
+    // this is a custom converter, returns a valid json. It includes a class field
+    public String toJson() {
 
         return String.format(
-                "{ \"fromUsername\": \"%s\", \"message\": \"%s\", \"timestamp\": \"%s\" }",
+                "{ \"type\": \"ChatMessage\", \"fromUsername\": \"%s\", \"message\": \"%s\", \"timestamp\": \"%s\", \"chatId\": \"%s\" }",
                 this.fromUsername,
                 this.message,
-                this.timestamp.toString() // Use ISO-8601 format for timestamp
+                this.timestamp.toString(), // Use ISO-8601 format for timestamp
+                this.chatId.toString()
         );
     }
 }

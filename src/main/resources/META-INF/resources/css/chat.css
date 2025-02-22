@@ -9,13 +9,19 @@ body {
 }
 
 .chat-container {
-    width: 600px;
+    width: 900px; /* Adjust width for sidebar */
     height: 90vh;
-    display: flex;
-    flex-direction: column;
+    display: flex; /* Flex layout to separate main chat and sidebar */
     background-color: #ffffff;
     border-radius: 10px;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+.chat-main {
+    flex: 3; /* Occupies 3/4th of the width */
+    display: flex;
+    flex-direction: column;
 }
 
 .chat-header {
@@ -23,8 +29,6 @@ body {
     background-color: #007bff;
     color: #ffffff;
     text-align: center;
-    border-top-left-radius: 10px;
-    border-top-right-radius: 10px;
 }
 
 .message-box {
@@ -95,4 +99,108 @@ button {
 
 button:hover {
     background-color: #0056b3;
+}
+
+/* Sidebar for active users */
+.chat-sidebar {
+    flex: 1; /* Occupies 1/4th of the width */
+    background-color: #f8f8f8;
+    border-left: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.chat-sidebar h2 {
+    margin: 0 0 10px 0;
+    font-size: 1.2rem;
+    color: #333;
+}
+
+.active-users {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.user {
+    padding: 10px;
+    border-radius: 5px;
+    background-color: #e1eaff;
+    font-size: 1rem;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.user:hover {
+    background-color: #d1d1ff;
+}
+
+.hidden {
+    display: none;
+}
+
+.invite-dialog {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.dialog-content {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    width: 100%;
+}
+
+.dialog-content h2 {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.dialog-content select {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.dialog-content button {
+    padding: 10px 20px;
+    margin: 5px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.dialog-content button:first-child {
+    background-color: #6a11cb;
+    color: #fff;
+}
+
+.dialog-content button:first-child:hover {
+    background-color: #2575fc;
+}
+
+.dialog-content button:last-child {
+    background-color: #ccc;
+}
+
+.dialog-content button:last-child:hover {
+    background-color: #bbb;
 }

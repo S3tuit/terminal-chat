@@ -4,14 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Chats</title>
-    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/chats.css">
 </head>
 <body>
 <div class="container">
-    <h1>Your Chats</h1>
-    <div id="chat-list" class="chat-list"></div>
-    <p id="error-message"></p>
+    <div class="sidebar">
+        <button id="create-chat-button" class="create-chat-button">Create a New Chat</button>
+        <button id="enter-invite-button" class="enter-invite-button">Enter an Invite</button>
+    </div>
+    <div class="main-content">
+        <h1>Your Chats</h1>
+        <div id="chat-list" class="chat-list"></div>
+        <p id="error-message"></p>
+    </div>
 </div>
-<script src="/js/chats.js"></script>
+
+<!-- Dialog for creating a new chat -->
+<div id="create-chat-dialog" class="dialog hidden">
+    <div class="dialog-content">
+        <h2>Create New Chat</h2>
+        <label for="chat-name">Chat Name:</label>
+        <input type="text" id="chat-name" maxlength="55">
+        <button id="submit-chat-button">Create</button>
+        <button id="cancel-chat-button">Cancel</button>
+    </div>
+</div>
+
+<!-- Dialog for entering an invite -->
+<div id="enter-invite-dialog" class="dialog hidden">
+    <div class="dialog-content">
+        <h2>Enter an Invite</h2>
+        <label for="chat-name">Invite code:</label>
+        <input type="text" id="invite-code" maxlength="9">
+        <button id="submit-invite-code-button">Enter</button>
+        <button id="cancel-invite-code-button">Cancel</button>
+    </div>
+</div>
+<script src="/js/websocket-service.js" type="module"></script>
+<script src="/js/chats.js" type="module"></script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 package org.chatq.invite;
 
-import io.quarkus.mongodb.panache.PanacheMongoEntity;
 import io.quarkus.mongodb.panache.common.MongoEntity;
+import io.quarkus.mongodb.panache.reactive.ReactivePanacheMongoEntity;
 import org.bson.codecs.pojo.annotations.BsonIgnore;
 import org.bson.types.ObjectId;
 
@@ -9,7 +9,7 @@ import java.security.SecureRandom;
 import java.time.Instant;
 
 @MongoEntity
-public class Invite extends PanacheMongoEntity {
+public class Invite extends ReactivePanacheMongoEntity {
 
     public ObjectId chatId;
     public String code;
@@ -42,33 +42,4 @@ public class Invite extends PanacheMongoEntity {
         return sb.toString();
     }
 
-    public static Invite createNewInvite(ObjectId chatId, Instant expiresAt) {
-        String inviteCode = Invite.generateRandomString(INVITE_LENGTH);
-        Invite invite = null;
-
-        try {
-            invite = new Invite(chatId, inviteCode, Instant.now(), expiresAt);
-            invite.persist();
-            return invite;
-        } catch (Exception e) {
-            System.out.println("Oh no, something went wrong during invite creation");
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    // Returns the chatId of the invite if it's a valid invite at db
-    public static ObjectId getChatIdInsideInvite(String inviteCode) {
-        Invite invite = Invite.find("code", inviteCode).firstResult();
-        if (invite != null) {
-
-            // If the invite is expired delete it at db and return false
-            if (invite.expiresAt.isBefore(Instant.now())) {
-                invite.delete();
-                return null;
-            }
-            return invite.chatId;
-        }
-        return null;
-    }
 }

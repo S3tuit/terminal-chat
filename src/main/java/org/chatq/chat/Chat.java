@@ -1,46 +1,31 @@
 package org.chatq.chat;
 
-import io.quarkus.mongodb.panache.PanacheMongoEntity;
 import io.quarkus.mongodb.panache.common.MongoEntity;
+import io.quarkus.mongodb.panache.reactive.ReactivePanacheMongoEntity;
 import org.bson.types.ObjectId;
 
 import java.time.Instant;
+import java.util.Set;
 
 @MongoEntity
-public class Chat extends PanacheMongoEntity {
+public class Chat extends ReactivePanacheMongoEntity {
 
     // Whether the chat is a direct (one to one)
     public Boolean direct;
     public String chatName;
     public ObjectId createdBy;
     public Instant createdAt;
+    public Set<ObjectId> userIds;
 
 
     public Chat () {};
 
-    public Chat (Boolean direct, String chatName, ObjectId createdBy, Instant createdAt) {
+    public Chat (Boolean direct, String chatName, ObjectId createdBy, Instant createdAt, Set<ObjectId> userIds) {
         this.direct = direct;
         this.chatName = chatName;
         this.createdBy = createdBy;
         this.createdAt = createdAt;
+        this.userIds = userIds;
     }
 
-    public static Chat findChatById(ObjectId id) {
-        return findById(id);
-    }
-
-
-    public static ObjectId getChatIdIfExists(ObjectId id) {
-        Chat chat = findChatById(id);
-        return chat != null ? chat.id : null;
-    }
-
-    public static ObjectId getChatIdIfExists(String chatId) {
-        try {
-            return getChatIdIfExists(new ObjectId(chatId));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
 }
