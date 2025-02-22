@@ -1,4 +1,4 @@
-package org.chatq.chat;
+package org.chatq.connection;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,7 +8,7 @@ import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.chatq.auth.AuthService;
-import org.chatq.users.UserRepository;
+import org.chatq.chat.ChatMessage;
 
 import java.time.Instant;
 import java.util.concurrent.ConcurrentHashMap;
@@ -23,13 +23,9 @@ public class ChatSocket {
     @Inject
     AuthService authService;
     @Inject
-    UserRepository userRepository;
-    @Inject
     ObjectMapper objectMapper;
     @Inject
     ConnectionRepository connectionRepository;
-    @Inject
-    ChatConnectionRepository chatConnectionRepository;
 
     @OnOpen
     public Uni<Void> onOpen(WebSocketConnection connection) {
@@ -47,7 +43,7 @@ public class ChatSocket {
         }
         connectionMap.put(connection.id(), connection);
 
-        return this.storeConnection(connection.id(), username)
+        return connectionRepository.storeConnection(connection.id(), username)
                 .flatMap(everythingOk -> {
                     if (!everythingOk) {
                         return connection.close(new CloseReason(CloseReason.INTERNAL_SERVER_ERROR.getCode(),
@@ -58,33 +54,6 @@ public class ChatSocket {
                 })
                 .onFailure().invoke(th -> {
                     System.out.println("Error while storing a connection " + th.getMessage());
-                });
-    }
-
-
-    // return true if everything was added to Redis correctly
-    public Uni<Boolean> storeConnection(String connectionId, String username) {
-        return userRepository.getChatIds(username)
-                .flatMap(chatIds -> {
-
-                    // Store the connection and the user data
-                    return connectionRepository.storeConnection(connectionId, username, chatIds)
-                            .flatMap(valuesStored -> {
-                                if (valuesStored > 0 && chatIds != null && !chatIds.isEmpty()) {
-
-                                    // For each chatId, add the current connection to the available ones for that chat
-                                    return Multi.createFrom().iterable(chatIds)
-                                            .onItem().transformToUni(chatId ->
-                                                    chatConnectionRepository.storeAvailableConnectionForChat(chatId, connectionId)
-                                            ).concatenate().collect().asList().replaceWith(true);
-                                } else {
-                                    return Uni.createFrom().item(false);
-                                }
-                            });
-                })
-                .onFailure().recoverWithItem(th -> {
-                    th.printStackTrace();
-                    return false;
                 });
     }
 
@@ -143,7 +112,7 @@ public class ChatSocket {
 
     private Uni<Void> broadcast(ChatMessage chatMessage) {
 
-        return chatConnectionRepository.getAvailableConnectionsForChat(chatMessage.chatId)
+        return connectionRepository.getAvailableConnectionsForChat(chatMessage.chatId)
                 .onItem().ifNotNull().transformToUni(connectionIds ->
 
                         // for each connectionId find the actual Connection stored in-memory
@@ -158,7 +127,7 @@ public class ChatSocket {
                                         return currConnection.sendText(chatMessage.toJson());
                                     } else {
                                         // If connection is not in-memory, remove it from redis
-                                        return chatConnectionRepository.removerConnectionFromChat(chatMessage.chatId, connectionId)
+                                        return connectionRepository.removerConnectionFromChat(chatMessage.chatId, connectionId)
                                                 .replaceWithVoid();
                                     }
                                 })

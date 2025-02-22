@@ -31,7 +31,7 @@ public class ChatMessage extends ReactivePanacheMongoEntity {
         this.chatId = chatId;
     }
 
-    public boolean isValid() {
+    public boolean messageValidity() {
         return fromUsername != null
                 && message != null
                 && timestamp != null

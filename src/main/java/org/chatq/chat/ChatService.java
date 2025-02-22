@@ -11,6 +11,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import org.bson.types.ObjectId;
 import org.chatq.auth.AuthService;
+import org.chatq.connection.ChatSocket;
 import org.chatq.users.UserRepository;
 
 import java.io.File;
