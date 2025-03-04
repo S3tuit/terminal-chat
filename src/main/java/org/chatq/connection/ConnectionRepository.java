@@ -17,9 +17,10 @@ public class ConnectionRepository {
     @Inject
     ConnectionUserMap connectionUserMap;
     @Inject
-    ChatConnectionsMap chatConnectionsMap;
+    ChatUsersMap chatUsersMap;
     @Inject
     UserConnectionMap userConnectionMap;
+
 
     // return true if everything was added to Redis correctly. It stores:
     // 1. connectionId: userdata
@@ -30,19 +31,23 @@ public class ConnectionRepository {
                 .flatMap(chatIds -> {
 
                     // 1. Map the connectionId to the userdata
-                    return connectionUserMap.storeConnection(connectionId, username, chatIds)
+                    return Uni.createFrom().completionStage(connectionUserMap.storeConnection(connectionId, username, chatIds))
                             .flatMap(valuesStored -> {
                                 if (valuesStored > 0 && chatIds != null && !chatIds.isEmpty()) {
 
                                     // 2. Map the username to the connectionId
-                                    return userConnectionMap.storeUserConnection(username, connectionId)
+                                    return Uni.createFrom().completionStage(userConnectionMap.storeUserConnection(username, connectionId))
                                             .flatMap(ignored -> {
 
                                                 // For each chatId, add the current connectionId to the available ones for that chat
                                                 return Multi.createFrom().iterable(chatIds)
                                                         .onItem().transformToUni(chatId ->
-                                                                chatConnectionsMap.storeAvailableConnectionForChat(chatId, connectionId)
-                                                        ).concatenate().collect().asList().replaceWith(true);
+                                                                Uni.createFrom().completionStage(
+                                                                        chatUsersMap.storeAvailableUsernameForChat(chatId, username)
+                                                                )
+                                                        )
+                                                        .merge().collect().asList()
+                                                        .replaceWith(true);
                                             });
                                 } else {
                                     return Uni.createFrom().item(false);
@@ -55,35 +60,40 @@ public class ConnectionRepository {
                 });
     }
 
-    public Uni<Void> removeConnection(String connectionId) {
+    public Uni<Void> removeConnection(String connectionId, String username) {
 
-        // Get the username associated with that connectionId
-        return connectionUserMap.getValueFromConnection(connectionId, "username")
-                .onItem().ifNotNull().transformToUni(username -> {
-
-                    // Remove the connection from the ConnectionUserMap
-                    return connectionUserMap.removeConnection(connectionId)
-                            .flatMap(elemetsRemoved -> {
-                                if (elemetsRemoved <= 0) {
-                                    return Uni.createFrom().voidItem();
-                                }
-
-                                // If connection removed from ConnectionUserMap, remove the username from UserConnectionMap
-                                return userConnectionMap.removeUserConnection(username)
-                                        .replaceWithVoid();
-                            });
+        // 1. Remove the username from the current online usernames for each chat they have access to
+        return userRepository.getChatIds(username)
+                .flatMap(chatIds ->
+                        Multi.createFrom().iterable(chatIds)
+                                .onItem().transformToUni(chatId ->
+                                        Uni.createFrom().completionStage(
+                                                chatUsersMap.removerUsernameFromChat(chatId, username)
+                                        )
+                                )
+                                .merge().collect().asList() // Wait for all chat removals to complete
+                                .replaceWithVoid()
+                )
+                .flatMap(ignored ->
+                        // 2. Remove the connection from the ConnectionUserMap
+                        Uni.createFrom().completionStage(connectionUserMap.removeConnection(connectionId))
+                )
+                .flatMap(elementsRemoved -> {
+                    // 3. Remove the username from UserConnectionMap
+                    return Uni.createFrom().completionStage(userConnectionMap.removeUserConnection(username))
+                            .replaceWithVoid();
                 });
     }
 
     public Uni<String> getValueFromConnection(String connectionId, String value) {
-        return connectionUserMap.getValueFromConnection(connectionId, value);
+        return Uni.createFrom().completionStage(connectionUserMap.getValueFromConnection(connectionId, value));
     }
 
-    public Uni<Set<String>> getAvailableConnectionsForChat(ObjectId chatId) {
-        return chatConnectionsMap.getAvailableConnectionsForChat(chatId);
+    public Uni<Set<String>> getAvailableUsernamesForChat(ObjectId chatId) {
+        return Uni.createFrom().completionStage(chatUsersMap.getAvailableUsernamesForChat(chatId));
     }
 
-    public Uni<Integer> removerConnectionFromChat(ObjectId chatId, String connectionId) {
-        return chatConnectionsMap.removerConnectionFromChat(chatId, connectionId);
+    public Uni<Long> removerUsernameFromChat(ObjectId chatId, String username) {
+        return Uni.createFrom().completionStage(chatUsersMap.removerUsernameFromChat(chatId, username));
     }
 }
