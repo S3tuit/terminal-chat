@@ -35,8 +35,9 @@
             <artifactId>quarkus-smallrye-jwt</artifactId>
         </dependency>
         <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-redis-client</artifactId>
+            <groupId>io.lettuce</groupId>
+            <artifactId>lettuce-core</artifactId>
+            <version>6.5.0.RELEASE</version>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>

@@ -1,8 +1,7 @@
 package org.chatq.connection;
 
-import io.quarkus.redis.datasource.ReactiveRedisDataSource;
-import io.quarkus.redis.datasource.value.ReactiveValueCommands;
-import io.smallrye.mutiny.Uni;
+import io.lettuce.core.RedisFuture;
+import io.lettuce.core.api.async.RedisAsyncCommands;
 import jakarta.enterprise.context.ApplicationScoped;
 
 
@@ -11,25 +10,26 @@ import jakarta.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class UserConnectionMap {
 
-    private final ReactiveValueCommands<String, String> valueCommands;
+    private final RedisAsyncCommands<String, String> redisCommands;
 
-    public UserConnectionMap(ReactiveRedisDataSource reactive) {
-        this.valueCommands = reactive.value(String.class);
+
+    public UserConnectionMap(LettuceRedisConnection lettuceRedisConnection) {
+        this.redisCommands = lettuceRedisConnection.getRedisCommands();
     }
 
-    public Uni<Void> storeUserConnection(String username, String connectionId) {
-        return valueCommands.set(username, connectionId);
+    public RedisFuture<String> storeUserConnection(String username, String connectionId) {
+        return redisCommands.set(username, connectionId);
     }
 
-    public Uni<String> getConnectionFromUser(String username) {
-        return valueCommands.get(username);
+    public RedisFuture<String> getConnectionFromUser(String username) {
+        return redisCommands.get(username);
     }
 
-    public Uni<String> removeUserConnection(String username) {
-        return valueCommands.getdel(username);
+    public RedisFuture<String> removeUserConnection(String username) {
+        return redisCommands.getdel(username);
     }
 
-    public Uni<Void> updateUserConnection(String username, String newConnectionId) {
-        return valueCommands.set(username, newConnectionId);
+    public RedisFuture<String> updateUserConnection(String username, String newConnectionId) {
+        return redisCommands.set(username, newConnectionId);
     }
 }

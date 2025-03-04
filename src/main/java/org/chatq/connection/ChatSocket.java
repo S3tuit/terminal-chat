@@ -17,7 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @ApplicationScoped
 public class ChatSocket {
 
-    // Maps the connectionId to the actual WebSocketConnection
+    // Maps the username to the actual WebSocketConnection
     ConcurrentHashMap<String, WebSocketConnection> connectionMap = new ConcurrentHashMap<>();
 
     @Inject
@@ -27,9 +27,11 @@ public class ChatSocket {
     @Inject
     ConnectionRepository connectionRepository;
 
+
     @OnOpen
     public Uni<Void> onOpen(WebSocketConnection connection) {
 
+        System.out.println("Trying to connect: " + connection.id());
         // Check for token validity
         String token = connection.pathParam("token");
         if (token == null || token.isEmpty()) {
@@ -41,15 +43,17 @@ public class ChatSocket {
         if (username == null) {
             return connection.close(new CloseReason(CloseReason.NORMAL.getCode(), "Hold on, bro, limited zone"));
         }
-        connectionMap.put(connection.id(), connection);
+        connectionMap.put(username, connection);
 
         return connectionRepository.storeConnection(connection.id(), username)
                 .flatMap(everythingOk -> {
                     if (!everythingOk) {
+                        System.out.println("Failed to connect: " + connection.id());
                         return connection.close(new CloseReason(CloseReason.INTERNAL_SERVER_ERROR.getCode(),
                                 "Oh no... something went wrong during validation"));
                     }
 
+                    System.out.println("All good: " + connection.id());
                     return Uni.createFrom().voidItem();
                 })
                 .onFailure().invoke(th -> {
@@ -61,7 +65,7 @@ public class ChatSocket {
     @OnTextMessage
     // Expecting a JSON containing {chatId: String, message: String}
     public Uni<Void> onMessage(WebSocketConnection connection, String incomingMsg) {
-        try{
+        try {
             ChatMessage chatMessage = objectMapper.readValue(incomingMsg, ChatMessage.class);
 
             // retrieve the username associated with the connection
@@ -92,34 +96,51 @@ public class ChatSocket {
 
     @OnClose
     public Uni<Void> onClose(WebSocketConnection connection) {
-        return connectionRepository.removeConnection(connection.id())
-                .invoke(() -> connectionMap.remove(connection.id()))
-                .replaceWithVoid()
-                .onFailure().invoke(failure -> {
-                    System.err.println("Failed to remove connection from Redis: " + failure.getMessage());
-                });
+        System.out.println("Closing connection: " + connection.id());
+
+        return connectionRepository.getValueFromConnection(connection.id(), "username")
+                .flatMap(username -> {
+                    if (username != null) {
+                        connectionMap.remove(username);
+                        return connectionRepository.removeConnection(connection.id(), username);
+                    } else {
+                        System.err.println("Closed connection not found in Redis, connectionId: " + connection.id());
+                        return Uni.createFrom().voidItem();
+                    }
+                })
+                .onFailure().invoke(failure ->
+                        System.err.println("Failed to remove connection from Redis: " + failure.getMessage())
+                );
     }
 
     @OnError
     public Uni<Void> onError(WebSocketConnection connection, Throwable throwable) {
-        return connectionRepository.removeConnection(connection.id())
-                .invoke(() -> connectionMap.remove(connection.id()))
-                .replaceWithVoid()
-                .onFailure().invoke(failure -> {
-                    System.err.println("Failed to remove failed connection from Redis: " + failure.getMessage());
-                });
+        System.out.println("Error in connection: " + connection.id() + "\n" + throwable.getMessage());
+        return connectionRepository.getValueFromConnection(connection.id(), "username")
+                .flatMap(username -> {
+                    if (username != null) {
+                        connectionMap.remove(username);
+                        return connectionRepository.removeConnection(connection.id(), username);
+                    } else {
+                        System.err.println("Erroneous connection not found in Redis, connectionId: " + connection.id());
+                        return Uni.createFrom().voidItem();
+                    }
+                })
+                .onFailure().invoke(failure ->
+                        System.err.println("Failed to remove erroneous from Redis: " + failure.getMessage())
+                );
     }
 
     private Uni<Void> broadcast(ChatMessage chatMessage) {
 
-        return connectionRepository.getAvailableConnectionsForChat(chatMessage.chatId)
-                .onItem().ifNotNull().transformToUni(connectionIds ->
+        return connectionRepository.getAvailableUsernamesForChat(chatMessage.chatId)
+                .onItem().ifNotNull().transformToUni(usernames ->
 
                         // for each connectionId find the actual Connection stored in-memory
-                        Multi.createFrom().iterable(connectionIds)
-                                .onItem().transformToUni(connectionId -> {
-                                    WebSocketConnection currConnection = connectionMap.get(connectionId);
-                                    System.out.println("Processing connection: " + connectionId);
+                        Multi.createFrom().iterable(usernames)
+                                .onItem().transformToUni(username -> {
+                                    WebSocketConnection currConnection = connectionMap.get(username);
+                                    System.out.println("Processing connection for user: " + username);
 
                                     // If the connection is present in-memory, broadcast to it
                                     if (currConnection != null) {
@@ -127,11 +148,12 @@ public class ChatSocket {
                                         return currConnection.sendText(chatMessage.toJson());
                                     } else {
                                         // If connection is not in-memory, remove it from redis
-                                        return connectionRepository.removerConnectionFromChat(chatMessage.chatId, connectionId)
+                                        return connectionRepository.removerUsernameFromChat(chatMessage.chatId, username)
                                                 .replaceWithVoid();
                                     }
                                 })
-                                .concatenate().collect().asList().replaceWithVoid()
+                                .merge().collect().asList()
+                                .replaceWithVoid()
                 );
     }
 
