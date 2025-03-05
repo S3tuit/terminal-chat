@@ -11,7 +11,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import org.bson.types.ObjectId;
 import org.chatq.auth.AuthService;
-import org.chatq.connection.ChatSocket;
+import org.chatq.connection.ConnectionRepository;
 import org.chatq.users.UserRepository;
 
 import java.io.File;
@@ -24,7 +24,7 @@ import java.io.File;
 public class ChatService {
 
     @Inject
-    ChatSocket chatSocket;
+    ConnectionRepository connectionRepository;
     @Inject
     ChatMessageRepository chatMessageRepository;
     @Inject
@@ -65,6 +65,22 @@ public class ChatService {
                                 .entity("Something went on our end: " + th.getMessage())
                                 .build()
                 );
+    }
+
+    @GET
+    @Path("/online-usernames")
+    @RolesAllowed({"User"})
+    public Uni<Response> getOnlineUsernames(@QueryParam("chatId") ObjectId chatId, @Context SecurityContext ctx) {
+
+        if (chatId == null) {
+            return Uni.createFrom().item(Response.status(Response.Status.BAD_REQUEST).entity("Parameters not valid.").build());
+        }
+
+        if (ctx.getUserPrincipal() == null) {
+            return Uni.createFrom().item(Response.status(Response.Status.UNAUTHORIZED).build());
+        }
+
+
     }
 
     // Create a new Chat entity and assign its ObjectId to chatIds of the User who created it
