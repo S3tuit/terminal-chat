@@ -7,10 +7,13 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.bson.types.ObjectId;
 import org.chatq.auth.AuthService;
 import org.chatq.chat.ChatMessage;
+import org.chatq.users.UserRepository;
 
 import java.time.Instant;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 @WebSocket(path = "/chat/ws/{token}")
@@ -26,6 +29,8 @@ public class ChatSocket {
     ObjectMapper objectMapper;
     @Inject
     ConnectionRepository connectionRepository;
+    @Inject
+    UserRepository userRepository;
 
 
     @OnOpen
@@ -45,8 +50,9 @@ public class ChatSocket {
         }
         connectionMap.put(username, connection);
 
-        return connectionRepository.storeConnection(connection.id(), username)
-                .flatMap(everythingOk -> {
+        return userRepository.getChatIds(username)
+                .flatMap(chatIds -> connectionRepository.storeConnection(connection.id(), username, chatIds)
+                        .flatMap(everythingOk -> {
                     if (!everythingOk) {
                         System.out.println("Failed to connect: " + connection.id());
                         return connection.close(new CloseReason(CloseReason.INTERNAL_SERVER_ERROR.getCode(),
@@ -54,11 +60,11 @@ public class ChatSocket {
                     }
 
                     System.out.println("All good: " + connection.id());
-                    return Uni.createFrom().voidItem();
+                    return broadcastOnlineUsernames(chatIds);
                 })
                 .onFailure().invoke(th -> {
                     System.out.println("Error while storing a connection " + th.getMessage());
-                });
+                }));
     }
 
 
@@ -102,7 +108,9 @@ public class ChatSocket {
                 .flatMap(username -> {
                     if (username != null) {
                         connectionMap.remove(username);
-                        return connectionRepository.removeConnection(connection.id(), username);
+                        return userRepository.getChatIds(username)
+                                .flatMap(chatIds -> connectionRepository.removeConnection(connection.id(), username, chatIds)
+                                        .flatMap(ignored -> broadcastOnlineUsernames(chatIds)));
                     } else {
                         System.err.println("Closed connection not found in Redis, connectionId: " + connection.id());
                         return Uni.createFrom().voidItem();
@@ -120,7 +128,9 @@ public class ChatSocket {
                 .flatMap(username -> {
                     if (username != null) {
                         connectionMap.remove(username);
-                        return connectionRepository.removeConnection(connection.id(), username);
+                        return userRepository.getChatIds(username)
+                                .flatMap(chatIds -> connectionRepository.removeConnection(connection.id(), username, chatIds)
+                                        .flatMap(ignored -> broadcastOnlineUsernames(chatIds)));
                     } else {
                         System.err.println("Erroneous connection not found in Redis, connectionId: " + connection.id());
                         return Uni.createFrom().voidItem();
@@ -155,6 +165,32 @@ public class ChatSocket {
                                 .merge().collect().asList()
                                 .replaceWithVoid()
                 );
+    }
+
+    private Uni<Void> broadcastOnlineUsernames(Set<ObjectId> chatIds) {
+
+        return Multi.createFrom().iterable(chatIds)
+                .onItem().transformToUni(chatId ->
+                    connectionRepository.getAvailableUsernamesForChat(chatId)
+                            .flatMap(usernames -> Multi.createFrom().iterable(usernames)
+                                        .onItem().transformToUni(username -> {
+                                            WebSocketConnection currConnection = connectionMap.get(username);
+                                            OnlineUsersMessage onlineUsersMessage = new OnlineUsersMessage(usernames, chatId);
+                                            System.out.println("Sending online usernames for user: " + username);
+
+                                            // If the connection is present in-memory, broadcast to it
+                                            if (currConnection != null) {
+                                                // Custom converter because ObjectMapper doesn't work well with ObjectId
+                                                return currConnection.sendText(onlineUsersMessage.toJson());
+                                            } else {
+                                                // If connection is not in-memory, remove it from redis
+                                                return connectionRepository.removerUsernameFromChat(chatId, username)
+                                                        .replaceWithVoid();
+                                            }
+                                        }).merge().collect().asList()
+                            )
+                ).merge().collect().asList()
+                .replaceWithVoid();
     }
 
 }
