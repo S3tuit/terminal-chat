@@ -11,7 +11,7 @@ import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.SecurityContext;
 import org.bson.types.ObjectId;
 import org.chatq.auth.AuthService;
-import org.chatq.connection.ChatSocket;
+import org.chatq.connection.ConnectionRepository;
 import org.chatq.users.UserRepository;
 
 import java.io.File;
@@ -24,7 +24,7 @@ import java.io.File;
 public class ChatService {
 
     @Inject
-    ChatSocket chatSocket;
+    ConnectionRepository connectionRepository;
     @Inject
     ChatMessageRepository chatMessageRepository;
     @Inject
@@ -52,6 +52,40 @@ public class ChatService {
                         return chatMessageRepository.getChatMessagesPage(chatId, page)
                                 .onItem().transform(messages ->
                                         Response.ok(messages).build());
+                    } else {
+                        return Uni.createFrom().item(
+                                Response.status(Response.Status.UNAUTHORIZED)
+                                        .entity("Access denied.")
+                                        .build()
+                        );
+                    }
+                })
+                .onFailure().recoverWithItem(th ->
+                        Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                                .entity("Something went on our end: " + th.getMessage())
+                                .build()
+                );
+    }
+
+    @GET
+    @Path("/online-usernames")
+    @RolesAllowed({"User"})
+    public Uni<Response> getOnlineUsernames(@QueryParam("chatId") ObjectId chatId, @Context SecurityContext ctx) {
+
+        if (chatId == null) {
+            return Uni.createFrom().item(Response.status(Response.Status.BAD_REQUEST).entity("Parameters not valid.").build());
+        }
+
+        if (ctx.getUserPrincipal() == null) {
+            return Uni.createFrom().item(Response.status(Response.Status.UNAUTHORIZED).build());
+        }
+
+        return userRepository.hasChat(ctx.getUserPrincipal().getName(), chatId)
+                .onItem().ifNotNull().transformToUni(hasAccess -> {
+                    if (hasAccess) {
+                        return connectionRepository.getAvailableUsernamesForChat(chatId)
+                                .onItem().transform(usernames ->
+                                        Response.ok(usernames).build());
                     } else {
                         return Uni.createFrom().item(
                                 Response.status(Response.Status.UNAUTHORIZED)
