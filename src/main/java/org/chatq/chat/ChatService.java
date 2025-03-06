@@ -80,7 +80,25 @@ public class ChatService {
             return Uni.createFrom().item(Response.status(Response.Status.UNAUTHORIZED).build());
         }
 
-
+        return userRepository.hasChat(ctx.getUserPrincipal().getName(), chatId)
+                .onItem().ifNotNull().transformToUni(hasAccess -> {
+                    if (hasAccess) {
+                        return connectionRepository.getAvailableUsernamesForChat(chatId)
+                                .onItem().transform(usernames ->
+                                        Response.ok(usernames).build());
+                    } else {
+                        return Uni.createFrom().item(
+                                Response.status(Response.Status.UNAUTHORIZED)
+                                        .entity("Access denied.")
+                                        .build()
+                        );
+                    }
+                })
+                .onFailure().recoverWithItem(th ->
+                        Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                                .entity("Something went on our end: " + th.getMessage())
+                                .build()
+                );
     }
 
     // Create a new Chat entity and assign its ObjectId to chatIds of the User who created it
