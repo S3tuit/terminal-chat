@@ -49,7 +49,7 @@ public class AuthService {
             JsonWebToken jwt = jwtParser.parse(token);
             if (
                     jwt.getClaim("upn") != null
-                            && jwt.getGroups().contains("User")
+                    && jwt.getGroups().contains("User")
             ) {
                 return jwt.getClaim("upn").toString();
             }
@@ -67,7 +67,7 @@ public class AuthService {
             return null;
         }
         JsonWebToken jwt = (JsonWebToken) ctx.getUserPrincipal();
-        if (jwt.getClaim(claimName) == null) {
+        if(jwt.getClaim(claimName) == null) {
             return null;
         }
         return jwt.getClaim(claimName).toString();

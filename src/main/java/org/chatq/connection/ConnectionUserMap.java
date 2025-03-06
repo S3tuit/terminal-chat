@@ -1,7 +1,8 @@
 package org.chatq.connection;
 
-import io.lettuce.core.RedisFuture;
-import io.lettuce.core.api.async.RedisAsyncCommands;
+import io.quarkus.redis.datasource.ReactiveRedisDataSource;
+import io.quarkus.redis.datasource.hash.ReactiveHashCommands;
+import io.smallrye.mutiny.Uni;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.bson.types.ObjectId;
 
@@ -13,37 +14,36 @@ import java.util.Set;
 @ApplicationScoped
 public class ConnectionUserMap {
 
-    private final RedisAsyncCommands<String, String> redisCommands;
+    private final ReactiveHashCommands<String, String, String> hashCommands;
 
-
-    public ConnectionUserMap(LettuceRedisConnection lettuceRedisConnection) {
-        this.redisCommands = lettuceRedisConnection.getRedisCommands();
+    public ConnectionUserMap(ReactiveRedisDataSource reactive) {
+        this.hashCommands = reactive.hash(String.class);
     }
 
     // Store a connection, return a Long indicating the number of fields that were added to the hash
-    public RedisFuture<Long> storeConnection(String connectionId, String username, Set<ObjectId> chatIds) {
+    public Uni<Long> storeConnection(String connectionId, String username, Set<ObjectId> chatIds) {
         String key = "connection:" + connectionId;
-        return redisCommands.hset(key, Map.of(
+        return hashCommands.hset(key, Map.of(
                 "username", username,
                 "chatIds", chatIds.toString()
         ));
     }
 
     // Retrieve a connection
-    public RedisFuture<Map<String, String>> getUserdata(String connectionId) {
+    public Uni<Map<String, String>> getUserdata(String connectionId){
         String key = "connection:" + connectionId;
-        return redisCommands.hgetall(key);
+        return hashCommands.hgetall(key);
     }
 
     // Retrieve a value from a connection
-    public RedisFuture<String> getValueFromConnection(String connectionId, String value) {
+    public Uni<String> getValueFromConnection(String connectionId, String value) {
         String key = "connection:" + connectionId;
-        return redisCommands.hget(key, value);
+        return hashCommands.hget(key, value);
     }
 
     // Delete a connection
-    public RedisFuture<Long> removeConnection(String connectionId) {
+    public Uni<Integer> removeConnection(String connectionId){
         String key = "connection:" + connectionId;
-        return redisCommands.hdel(key, new String[]{"username", "chatIds"});
+        return hashCommands.hdel(key, new String[]{"username", "chatIds"});
     }
 }

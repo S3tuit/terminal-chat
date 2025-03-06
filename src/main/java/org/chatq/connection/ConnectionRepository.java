@@ -15,10 +15,9 @@ public class ConnectionRepository {
     @Inject
     ConnectionUserMap connectionUserMap;
     @Inject
-    ChatUsersMap chatUsersMap;
+    ChatConnectionsMap chatConnectionsMap;
     @Inject
     UserConnectionMap userConnectionMap;
-
 
     // return true if everything was added to Redis correctly. It stores:
     // 1. connectionId: userdata
@@ -76,14 +75,14 @@ public class ConnectionRepository {
     }
 
     public Uni<String> getValueFromConnection(String connectionId, String value) {
-        return Uni.createFrom().completionStage(connectionUserMap.getValueFromConnection(connectionId, value));
+        return connectionUserMap.getValueFromConnection(connectionId, value);
     }
 
-    public Uni<Set<String>> getAvailableUsernamesForChat(ObjectId chatId) {
-        return Uni.createFrom().completionStage(chatUsersMap.getAvailableUsernamesForChat(chatId));
+    public Uni<Set<String>> getAvailableConnectionsForChat(ObjectId chatId) {
+        return chatConnectionsMap.getAvailableConnectionsForChat(chatId);
     }
 
-    public Uni<Long> removerUsernameFromChat(ObjectId chatId, String username) {
-        return Uni.createFrom().completionStage(chatUsersMap.removerUsernameFromChat(chatId, username));
+    public Uni<Integer> removerConnectionFromChat(ObjectId chatId, String connectionId) {
+        return chatConnectionsMap.removerConnectionFromChat(chatId, connectionId);
     }
 }
